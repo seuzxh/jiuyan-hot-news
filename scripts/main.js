@@ -2,7 +2,7 @@
 
 // 每日热点推送主执行脚本
 const fs = require('fs');
-const CozeAPI = require('./coze_api');
+const CozeAPIClient = require('./coze_api');
 const FeishuPush = require('./feishu_push');
 
 // 日志记录函数
@@ -53,7 +53,7 @@ async function main() {
 
     // 2. 初始化API客户端
     log('info', '初始化API客户端');
-    const cozeAPI = new CozeAPI(process.env.COZE_API_TOKEN);
+    const cozeAPI = new CozeAPIClient(process.env.COZE_API_TOKEN);
     const feishuPush = new FeishuPush(process.env.FEISHU_WEBHOOK_URL);
 
     // 3. 获取热点资讯
@@ -182,7 +182,7 @@ async function runTestMode() {
 
     // 2. 测试Coze API连接
     log('info', '测试Coze API连接');
-    const cozeAPI = new CozeAPI(process.env.COZE_API_TOKEN);
+    const cozeAPI = new CozeAPIClient(process.env.COZE_API_TOKEN);
     console.log('Coze API配置正常，Token已设置');
 
     // 3. 测试飞书推送

@@ -1,138 +1,55 @@
 // Coze API调用脚本
-const https = require('https');
-const http = require('http');
+const { CozeAPI } = require('@coze/api');
 
-class CozeAPI {
+class CozeAPIClient {
   constructor(apiToken, baseURL = 'https://api.coze.cn') {
-    this.apiToken = apiToken;
-    this.baseURL = baseURL;
+    this.client = new CozeAPI({
+      token: apiToken,
+      baseURL: baseURL
+    });
   }
 
   // 调用工作流
   async runWorkflow(workflowId) {
-    const url = `${this.baseURL}/v1/workflow/run`;
-    const data = JSON.stringify({
-      workflow_id: workflowId
-    });
-
-    const options = {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.apiToken}`,
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(data)
-      }
-    };
-
-    return new Promise((resolve, reject) => {
-      const protocol = url.startsWith('https') ? https : http;
-
-      const req = protocol.request(url, options, (res) => {
-        let responseData = '';
-
-        res.on('data', (chunk) => {
-          responseData += chunk;
-        });
-
-        res.on('end', () => {
-          try {
-            const jsonData = JSON.parse(responseData);
-
-            if (res.statusCode >= 200 && res.statusCode < 300) {
-              resolve({
-                success: true,
-                data: jsonData,
-                statusCode: res.statusCode
-              });
-            } else {
-              resolve({
-                success: false,
-                error: jsonData,
-                statusCode: res.statusCode
-              });
-            }
-          } catch (error) {
-            reject({
-              success: false,
-              error: `解析响应失败: ${error.message}`,
-              statusCode: res.statusCode,
-              rawData: responseData
-            });
-          }
-        });
+    try {
+      const response = await this.client.workflows.runs.create({
+        workflow_id: workflowId
       });
 
-      req.on('error', (error) => {
-        reject({
-          success: false,
-          error: `请求失败: ${error.message}`
-        });
-      });
-
-      req.write(data);
-      req.end();
-    });
+      return {
+        success: true,
+        data: response,
+        statusCode: 200
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        statusCode: error.status || 500
+      };
+    }
   }
 
   // 获取工作流执行结果
   async getWorkflowResult(workflowId, runId) {
-    const url = `${this.baseURL}/v1/workflow/retrieve?workflow_id=${workflowId}&run_id=${runId}`;
-
-    const options = {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${this.apiToken}`,
-        'Content-Type': 'application/json'
-      }
-    };
-
-    return new Promise((resolve, reject) => {
-      const protocol = url.startsWith('https') ? https : http;
-
-      const req = protocol.request(url, options, (res) => {
-        let responseData = '';
-
-        res.on('data', (chunk) => {
-          responseData += chunk;
-        });
-
-        res.on('end', () => {
-          try {
-            const jsonData = JSON.parse(responseData);
-
-            if (res.statusCode >= 200 && res.statusCode < 300) {
-              resolve({
-                success: true,
-                data: jsonData,
-                statusCode: res.statusCode
-              });
-            } else {
-              resolve({
-                success: false,
-                error: jsonData,
-                statusCode: res.statusCode
-              });
-            }
-          } catch (error) {
-            reject({
-              success: false,
-              error: `解析响应失败: ${error.message}`,
-              statusCode: res.statusCode,
-              rawData: responseData
-            });
-          }
-        });
+    try {
+      const response = await this.client.workflows.runs.retrieve({
+        workflow_id: workflowId,
+        run_id: runId
       });
 
-      req.on('error', (error) => {
-        reject({
-          success: false,
-          error: `请求失败: ${error.message}`
-        });
-      });
-
-      req.end();
-    });
+      return {
+        success: true,
+        data: response,
+        statusCode: 200
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        statusCode: error.status || 500
+      };
+    }
   }
 
   // 获取热点资讯（完整流程）
@@ -208,7 +125,7 @@ if (require.main === module) {
     process.exit(1);
   }
 
-  const cozeAPI = new CozeAPI(apiToken);
+  const cozeAPI = new CozeAPIClient(apiToken);
 
   cozeAPI.getHotNews()
     .then(result => {
@@ -226,4 +143,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = CozeAPI;
+module.exports = CozeAPIClient;

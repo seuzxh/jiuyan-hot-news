@@ -12,7 +12,10 @@
       "Bash(git remote:*)",
       "Bash(git push:*)",
       "Bash(git filter-branch:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(npm install:*)",
+      "Bash(yamllint:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []

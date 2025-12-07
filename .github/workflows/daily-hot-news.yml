@@ -13,92 +13,117 @@ on:
       - 'package.json'
 
 jobs:
-  # 调试任务 - 使用 debugger action
-  debug:
-    name: 调试环境检查
+  # 环境检查和依赖安装
+  setup:
+    name: 环境准备
     runs-on: ubuntu-latest
-    steps:
-    - name: 启动调试会话
-      uses: csexton/debugger-action@master
 
+    steps:
     - name: 检出代码
       uses: actions/checkout@v4
 
-    - name: 调试项目结构
+    - name: 设置Node.js环境
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: 验证项目文件
       run: |
-        echo "=== 调试信息 ==="
+        echo "=== 项目文件检查 ==="
         echo "当前工作目录: $(pwd)"
-        echo "用户: $(whoami)"
         echo "Node版本: $(node --version)"
         echo "NPM版本: $(npm --version)"
         echo ""
-        echo "=== 项目文件结构 ==="
-        find . -type f | head -30
-        echo ""
-        echo "=== 检查关键文件 ==="
-        ls -la scripts/ || echo "scripts目录不存在"
-        echo ""
-        echo "=== package.json内容 ==="
-        cat package.json || echo "package.json不存在"
-        echo ""
-        echo "=== 环境变量检查 ==="
-        echo "COZE_API_TOKEN: ${COZE_API_TOKEN:0:10}..."
-        echo "COZE_WORKFLOW_ID: $COZE_WORKFLOW_ID"
-        echo "FEISHU_WEBHOOK_URL: ${FEISHU_WEBHOOK_URL:0:30}..."
-      env:
-        COZE_API_TOKEN: ${{ secrets.COZE_API_TOKEN }}
-        COZE_WORKFLOW_ID: ${{ secrets.COZE_WORKFLOW_ID }}
-        FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
-
-    - name: 调试依赖安装
-      run: |
-        echo "=== 尝试安装依赖 ==="
-        npm install --verbose
-        echo ""
-        echo "=== 检查已安装的依赖 ==="
-        npm list --depth=0
-        echo ""
-        echo "=== 检查node_modules ==="
-        ls -la node_modules/ | head -20 || echo "node_modules目录不存在"
-
-    - name: 调试脚本执行
-      env:
-        COZE_API_TOKEN: ${{ secrets.COZE_API_TOKEN }}
-        COZE_WORKFLOW_ID: ${{ secrets.COZE_WORKFLOW_ID }}
-        FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
-        NODE_ENV: production
-      run: |
-        echo "=== 脚本执行前检查 ==="
-        if [ ! -f "scripts/main.js" ]; then
-          echo "错误: scripts/main.js 文件不存在"
-          find . -name "*.js" -type f
+        echo "=== 关键文件检查 ==="
+        if [ -f "package.json" ]; then
+          echo "✓ package.json 存在"
+          echo "依赖列表："
+          cat package.json | grep -A 10 '"dependencies"'
+        else
+          echo "❌ package.json 不存在"
           exit 1
         fi
 
-        echo "scripts/main.js 存在，内容预览："
-        head -20 scripts/main.js
-        echo ""
-
-        echo "=== 检查Node.js语法 ==="
-        node -c scripts/main.js && echo "语法检查通过" || echo "语法错误"
-
-        if [ -f "scripts/coze_api.js" ]; then
-          node -c scripts/coze_api.js && echo "coze_api.js 语法检查通过" || echo "coze_api.js 语法错误"
+        if [ -f "scripts/main.js" ]; then
+          echo "✓ main.js 存在"
+        else
+          echo "❌ main.js 不存在"
+          exit 1
         fi
 
-        if [ -f "scripts/feishu_push.js" ]; then
-          node -c scripts/feishu_push.js && echo "feishu_push.js 语法检查通过" || echo "feishu_push.js 语法错误"
-        fi
+        for script in scripts/coze_api.js scripts/feishu_push.js; do
+          if [ -f "$script" ]; then
+            echo "✓ $script 存在"
+            # 语法检查
+            if node -c "$script" 2>/dev/null; then
+              echo "  ✓ 语法检查通过"
+            else
+              echo "  ❌ 语法错误"
+              node -c "$script"
+              exit 1
+            fi
+          else
+            echo "❌ $script 不存在"
+            exit 1
+          fi
+        done
+
+    - name: 安装依赖
+      run: |
+        echo "=== 安装项目依赖 ==="
+        npm install
         echo ""
+        echo "=== 验证关键依赖安装 ==="
 
-        echo "=== 尝试执行脚本 ==="
-        node scripts/main.js --help
+        # 检查 @coze/api 是否正确安装
+        if npm list @coze/api > /dev/null 2>&1; then
+          echo "✓ @coze/api SDK 已安装"
+          echo "版本信息："
+          npm list @coze/api --depth=0
+        else
+          echo "❌ @coze/api SDK 安装失败"
+          exit 1
+        fi
 
-  # 实际执行任务
+        # 检查其他依赖
+        if npm list node-fetch > /dev/null 2>&1; then
+          echo "✓ node-fetch 已安装"
+        else
+          echo "❌ node-fetch 安装失败"
+          exit 1
+        fi
+
+        echo ""
+        echo "所有依赖安装完成："
+        npm list --depth=0
+
+    - name: 测试模块导入
+      run: |
+        echo "=== 测试模块导入 ==="
+        node -e "
+        try {
+          const { CozeAPI } = require('@coze/api');
+          console.log('✓ @coze/api SDK 导入成功');
+
+          const CozeAPIClient = require('./scripts/coze_api');
+          console.log('✓ CozeAPIClient 模块导入成功');
+
+          const FeishuPush = require('./scripts/feishu_push');
+          console.log('✓ FeishuPush 模块导入成功');
+
+          console.log('所有模块测试通过');
+        } catch(e) {
+          console.error('❌ 模块导入失败:', e.message);
+          process.exit(1);
+        }
+        "
+
+  # 实际执行热点推送任务
   fetch-and-push-hot-news:
     name: 执行热点推送
     runs-on: ubuntu-latest
-    needs: debug
+    needs: setup
     if: success()
 
     steps:
@@ -112,31 +137,42 @@ jobs:
         cache: 'npm'
 
     - name: 安装依赖
-      run: |
-        echo "安装依赖..."
-        npm install
-        echo "依赖安装完成"
+      run: npm install
 
     - name: 验证环境变量
       run: |
-        echo "验证必需的环境变量..."
+        echo "=== 验证必需的环境变量 ==="
         REQUIRED_VARS=("COZE_API_TOKEN" "COZE_WORKFLOW_ID" "FEISHU_WEBHOOK_URL")
         MISSING_VARS=()
 
         for var in "${REQUIRED_VARS[@]}"; do
           if [ -z "${!var}" ]; then
             MISSING_VARS+=("$var")
+            echo "❌ $var: 未设置"
           else
-            echo "$var: 已设置"
+            case $var in
+              "COZE_API_TOKEN")
+                echo "✓ $var: ${!var:0:10}... (${#var} 字符)"
+                ;;
+              "FEISHU_WEBHOOK_URL")
+                echo "✓ $var: ${!var:0:30}... (${#var} 字符)"
+                ;;
+              *)
+                echo "✓ $var: ${!var}"
+                ;;
+            esac
           fi
         done
 
         if [ ${#MISSING_VARS[@]} -ne 0 ]; then
+          echo ""
           echo "错误: 缺少必需的环境变量: ${MISSING_VARS[*]}"
+          echo "请在 GitHub 仓库设置中添加这些 Secrets"
           exit 1
         fi
 
-        echo "所有必需的环境变量都已设置"
+        echo ""
+        echo "✅ 所有必需的环境变量都已设置"
       env:
         COZE_API_TOKEN: ${{ secrets.COZE_API_TOKEN }}
         COZE_WORKFLOW_ID: ${{ secrets.COZE_WORKFLOW_ID }}
@@ -150,11 +186,11 @@ jobs:
         FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
         NODE_ENV: production
       run: |
-        echo "运行测试模式..."
+        echo "=== 运行测试模式 ==="
         node scripts/main.js --test
-        echo "测试模式完成"
+        echo "=== 测试模式完成 ==="
 
-    - name: 正式执行
+    - name: 正式执行热点推送
       if: steps.test-run.outcome == 'success'
       env:
         COZE_API_TOKEN: ${{ secrets.COZE_API_TOKEN }}
@@ -162,17 +198,25 @@ jobs:
         FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
         NODE_ENV: production
       run: |
-        echo "开始正式执行热点推送..."
+        echo "=== 开始正式执行热点推送 ==="
+        echo "执行时间: $(date '+%Y-%m-%d %H:%M:%S UTC')"
         node scripts/main.js
-        echo "热点推送执行完成"
+        echo "=== 热点推送执行完成 ==="
 
     - name: 记录执行结果
       if: always()
       run: |
-        echo "$(date '+%Y-%m-%d %H:%M:%S'): 工作流执行完成" >> progress.log
+        echo "=== 执行结果记录 ==="
+        TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+        echo "$TIMESTAMP: 工作流执行完成" >> progress.log
+
         if [ -f "progress.log" ]; then
-          echo "=== 执行日志 ==="
-          cat progress.log
+          echo "最近执行日志："
+          tail -10 progress.log
         else
-          echo "没有日志文件"
+          echo "未找到日志文件"
         fi
+
+        echo ""
+        echo "工作流状态: ${{ job.status }}"
+        echo "完成时间: $TIMESTAMP"

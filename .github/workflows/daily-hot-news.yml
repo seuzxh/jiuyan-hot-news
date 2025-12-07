@@ -1,0 +1,41 @@
+name: 每日热点定时推送
+
+on:
+  schedule:
+    # 每2小时触发一次 (UTC时间，对应北京时间8点、10点、12点...等)
+    - cron: '0 */2 * * *'
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  fetch-and-push-hot-news:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+
+    - name: 设置Node.js环境
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: 安装依赖
+      run: |
+        npm init -y
+        npm install node-fetch
+
+    - name: 调用Coze工作流并推送至飞书
+      env:
+        COZE_API_TOKEN: ${{ secrets.COZE_API_TOKEN }}
+        COZE_WORKFLOW_ID: ${{ secrets.COZE_WORKFLOW_ID }}
+        FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
+      run: |
+        node scripts/main.js
+      shell: bash
+
+    - name: 记录执行日志
+      if: always()
+      run: |
+        echo "$(date): 工作流执行完成" >> progress.log
+      shell: bash

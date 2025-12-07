@@ -1,0 +1,50 @@
+# 环境变量文件
+.env
+.env.local
+.env.*.local
+.mcp.json
+
+# 日志文件
+*.log
+progress.log
+error.log
+
+# 依赖目录
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 运行时文件
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# 覆盖率目录
+coverage/
+.nyc_output
+
+# 编辑器配置
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 临时文件
+*.tmp
+*.temp
+
+# 备份文件
+*.bak
+*.backup

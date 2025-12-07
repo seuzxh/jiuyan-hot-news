@@ -1,0 +1,35 @@
+{
+  "name": "jiuyan-hot-news",
+  "version": "1.0.0",
+  "description": "每日热点定时推送 - 通过GitHub Action定时调用Coze工作流并推送至飞书",
+  "main": "scripts/main.js",
+  "scripts": {
+    "start": "node scripts/main.js",
+    "test": "node scripts/main.js --test",
+    "lint": "echo '暂未配置代码检查'",
+    "install-deps": "npm install"
+  },
+  "keywords": [
+    "github-actions",
+    "coze",
+    "feishu",
+    "hot-news",
+    "automation"
+  ],
+  "author": "Jiuyan Hot News",
+  "license": "MIT",
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/username/jiuyan-hot-news.git"
+  },
+  "bugs": {
+    "url": "https://github.com/username/jiuyan-hot-news/issues"
+  },
+  "homepage": "https://github.com/username/jiuyan-hot-news#readme"
+}

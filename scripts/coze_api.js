@@ -64,6 +64,7 @@ class CozeAPIClient {
       if (!runResult.success) {
         throw new Error(`启动工作流失败: ${JSON.stringify(runResult.error)}`);
       }
+      console.log(`工作流启动 runWorkflow result: ${JSON.stringify(runResult)}`);
 
       const runId = runResult.data.data?.id;
       if (!runId) {
@@ -74,10 +75,10 @@ class CozeAPIClient {
 
       // 第二步：等待并获取结果（最多等待30次，每次间隔2秒）
       let attempts = 0;
-      const maxAttempts = 30;
+      const maxAttempts = 300;
 
       while (attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // 等待2秒
+        await new Promise(resolve => setTimeout(resolve, 10000)); // 等待10秒
 
         console.log(`检查工作流结果 (${attempts + 1}/${maxAttempts})...`);
         const result = await this.getWorkflowResult(workflowId, runId);

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 // 每日热点推送主执行脚本
+const fs = require('fs');
 const CozeAPI = require('./coze_api');
 const FeishuPush = require('./feishu_push');
 
@@ -12,7 +13,6 @@ function log(level, message) {
 
   // 同时写入日志文件
   try {
-    const fs = require('fs');
     fs.appendFileSync('progress.log', logMessage + '\n');
   } catch (error) {
     console.error('写入日志文件失败:', error);

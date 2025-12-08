@@ -86,8 +86,7 @@ class FeishuPush {
   formatHotNewsMessage(newsData) {
     const now = new Date();
     // 使用北京时间（UTC+8）格式化时间
-    const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
-    const timeString = beijingTime.toLocaleString('zh-CN', {
+    const timeString = now.toLocaleString('zh-CN', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',

@@ -1,4 +1,4 @@
-// Coze API调用脚本
+// Coze API调用脚本 - 使用官方SDK
 const { CozeAPI } = require('@coze/api');
 
 class CozeAPIClient {
@@ -9,12 +9,19 @@ class CozeAPIClient {
     });
   }
 
-  // 调用工作流
-  async runWorkflow(workflowId) {
+  // 调用工作流 - 使用官方SDK (修复后)
+  async runWorkflow(workflowId, parameters = {}) {
     try {
-      const response = await this.client.workflows.runs.create({
-        workflow_id: workflowId
-      });
+      // 正确的API调用方式: create(params, options)
+      const params = {
+        workflow_id: workflowId,
+        is_async:true,
+        parameters: parameters
+      };
+
+      const response = await this.client.workflows.runs.create(params);
+
+      console.log(`✓ 工作流启动响应: ${JSON.stringify(response)}`);
 
       return {
         success: true,
@@ -22,6 +29,7 @@ class CozeAPIClient {
         statusCode: 200
       };
     } catch (error) {
+      console.error(`❌ 工作流启动失败: ${error.message}`);
       return {
         success: false,
         error: error.message,
@@ -30,13 +38,13 @@ class CozeAPIClient {
     }
   }
 
-  // 获取工作流执行结果
+  // 获取工作流执行结果 - 使用官方SDK (修复后)
   async getWorkflowResult(workflowId, runId) {
     try {
-      const response = await this.client.workflows.runs.retrieve({
-        workflow_id: workflowId,
-        run_id: runId
-      });
+      // 正确的API调用方式: history(workflowId, executeId, options)
+      const response = await this.client.workflows.runs.history(workflowId, runId, {});
+
+      console.log(`✓ 工作流状态查询响应: ${JSON.stringify(response)}`);
 
       return {
         success: true,
@@ -44,6 +52,7 @@ class CozeAPIClient {
         statusCode: 200
       };
     } catch (error) {
+      console.error(`❌ 获取工作流结果失败: ${error.message}`);
       return {
         success: false,
         error: error.message,
@@ -52,66 +61,112 @@ class CozeAPIClient {
     }
   }
 
-  // 获取热点资讯（完整流程）
-  async getHotNews() {
+  // 获取热点资讯（完整流程）- 优化使用官方SDK
+  async getHotNews(workflowId = null, parameters = {}) {
     try {
-      const workflowId = process.env.COZE_WORKFLOW_ID || '7554238030879113267';
+      const targetWorkflowId = workflowId || process.env.COZE_WORKFLOW_ID || '7554238030879113267';
+
+      console.log('=== 开始获取热点资讯 ===');
+      console.log(`工作流ID: ${targetWorkflowId}`);
+      console.log(`参数: ${JSON.stringify(parameters)}`);
 
       // 第一步：启动工作流
-      console.log('启动Coze工作流...');
-      const runResult = await this.runWorkflow(workflowId);
+      console.log('步骤1: 启动Coze工作流...');
+      const runResult = await this.runWorkflow(targetWorkflowId, parameters);
 
       if (!runResult.success) {
-        throw new Error(`启动工作流失败: ${JSON.stringify(runResult.error)}`);
+        throw new Error(`启动工作流失败: ${runResult.error}`);
       }
-      console.log(`工作流启动 runWorkflow result: ${JSON.stringify(runResult)}`);
 
-      const runId = runResult.data.data?.id;
+      // 根据官方SDK响应结构获取runId
+      const runId = runResult.data?.execute_id;
       if (!runId) {
-        throw new Error('无法获取工作流运行ID');
-      }
-
-      console.log(`工作流启动成功，运行ID: ${runId}`);
-
-      // 第二步：等待并获取结果（最多等待30次，每次间隔2秒）
-      let attempts = 0;
-      const maxAttempts = 300;
-
-      while (attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 10000)); // 等待10秒
-
-        console.log(`检查工作流结果 (${attempts + 1}/${maxAttempts})...`);
-        const result = await this.getWorkflowResult(workflowId, runId);
-
-        if (result.success) {
-          const status = result.data.data?.status;
-
-          if (status === 'succeeded') {
-            console.log('工作流执行成功');
+        // 如果工作流是同步执行的，直接使用返回的数据
+        if (runResult.data?.data) {
+          try {
+            const parsedData = JSON.parse(runResult.data.data);
+            if (parsedData.output) {
+              console.log('✓ 工作流同步执行成功，获取到热点数据');
+              return {
+                success: true,
+                data: runResult.data,
+                content: parsedData.output,
+                runId: 'sync-execution',
+                executionTime: new Date().toISOString()
+              };
+            }
+          } catch (parseError) {
+            console.log('✓ 工作流同步执行成功，返回原始数据');
             return {
               success: true,
-              data: result.data.data,
-              content: result.data.data?.outputs || result.data.data?.result
+              data: runResult.data,
+              content: runResult.data.data,
+              runId: 'sync-execution',
+              executionTime: new Date().toISOString()
             };
-          } else if (status === 'failed') {
-            throw new Error(`工作流执行失败: ${JSON.stringify(result.data.data)}`);
-          } else if (status === 'running') {
-            console.log('工作流仍在运行中...');
           }
-        } else {
-          throw new Error(`获取工作流结果失败: ${JSON.stringify(result.error)}`);
         }
 
-        attempts++;
+        console.error('完整响应结构:', JSON.stringify(runResult, null, 2));
+        throw new Error('无法从响应中获取工作流运行ID或数据');
       }
 
-      throw new Error('工作流执行超时');
+      console.log(`✓ 工作流启动成功，运行ID: ${runId}`);
+
+      // 第二步：等待并获取结果
+      console.log('步骤2: 等待工作流执行完成...');
+      let attempts = 0;
+      const maxAttempts = 30; // 减少到30次，每次10秒，总计5分钟
+
+      while (attempts < maxAttempts) {
+        attempts++;
+        console.log(`检查工作流状态 (${attempts}/${maxAttempts})...`);
+
+        // 等待10秒
+        await new Promise(resolve => setTimeout(resolve, 10000));
+
+        const result = await this.getWorkflowResult(targetWorkflowId, runId);
+
+        if (result.success) {
+          const status = result.data?.status || result.data?.data?.status;
+          console.log(`当前状态: ${status}`);
+
+          if (status === 'succeeded') {
+            console.log('✓ 工作流执行成功');
+            const outputs = result.data?.outputs || result.data?.data?.outputs;
+            const resultData = result.data?.result || result.data?.data?.result;
+
+            return {
+              success: true,
+              data: result.data,
+              content: outputs || resultData,
+              runId: runId,
+              executionTime: new Date().toISOString()
+            };
+          } else if (status === 'failed') {
+            const errorCode = result.data?.error_code || result.data?.data?.error_code;
+            const errorMsg = result.data?.message || result.data?.data?.message;
+            throw new Error(`工作流执行失败 [${errorCode}]: ${errorMsg}`);
+          } else if (status === 'running' || status === 'pending') {
+            console.log('→ 工作流执行中，继续等待...');
+            continue;
+          } else {
+            console.log(`未知状态: ${status}，继续等待...`);
+            continue;
+          }
+        } else {
+          throw new Error(`获取工作流结果失败: ${result.error}`);
+        }
+      }
+
+      throw new Error(`工作流执行超时，已等待${maxAttempts * 10}秒`);
 
     } catch (error) {
-      console.error('获取热点资讯失败:', error);
+      console.error('❌ 获取热点资讯失败:', error.message);
       return {
         success: false,
-        error: error.message
+        error: error.message,
+        timestamp: new Date().toISOString()
       };
     }
   }

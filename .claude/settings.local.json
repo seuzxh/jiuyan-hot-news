@@ -15,9 +15,20 @@
       "Bash(echo:*)",
       "Bash(npm install:*)",
       "Bash(yamllint:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "WebSearch",
+      "WebFetch(domain:docs.coze.com)",
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(del:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "context7"
+  ]
 }

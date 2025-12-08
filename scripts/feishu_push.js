@@ -1,4 +1,4 @@
-// 飞书推送脚本
+// 飞书推送脚本 (修复版)
 const https = require('https');
 const http = require('http');
 
@@ -34,7 +34,7 @@ class FeishuPush {
             const jsonData = JSON.parse(responseData);
 
             if (res.statusCode >= 200 && res.statusCode < 300) {
-              if (jsonData.code === 0) {
+              if (jsonData.code === 0 || jsonData.StatusCode === 0) {
                 resolve({
                   success: true,
                   data: jsonData,
@@ -89,154 +89,67 @@ class FeishuPush {
       hour12: false
     });
 
-    // 构建富文本消息
-    const message = {
-      msg_type: "rich_text",
-      content: {
-        rich_text: [
-          {
-            tag: "text",
-            text: "🔥 ",
-            style: {
-              bold: true
-            }
-          },
-          {
-            tag: "text",
-            text: "热点资讯推送",
-            style: {
-              bold: true,
-              font_size: "large",
-              font_color: "#FF6B6B"
-            }
-          },
-          {
-            tag: "text",
-            text: `\n📅 更新时间: ${timeString}\n\n`,
-            style: {
-              font_color: "#666666"
-            }
-          }
-        ]
-      }
-    };
+    // 构建文本消息内容
+    let content = `🔥 **热点资讯推送** 📅 ${timeString}\n\n`;
 
     // 解析并添加热点内容
     try {
-      let content = '';
+      let newsContent = '';
 
       // 如果有content字段，直接使用
       if (newsData.content) {
-        content = typeof newsData.content === 'string'
+        newsContent = typeof newsData.content === 'string'
           ? newsData.content
           : JSON.stringify(newsData.content, null, 2);
       }
       // 如果有outputs字段，尝试解析
       else if (newsData.outputs) {
-        content = typeof newsData.outputs === 'string'
+        newsContent = typeof newsData.outputs === 'string'
           ? newsData.outputs
           : JSON.stringify(newsData.outputs, null, 2);
       }
       // 如果有result字段，尝试解析
       else if (newsData.result) {
-        content = typeof newsData.result === 'string'
+        newsContent = typeof newsData.result === 'string'
           ? newsData.result
           : JSON.stringify(newsData.result, null, 2);
       }
       // 其他情况，序列化整个data对象
       else {
-        content = JSON.stringify(newsData, null, 2);
+        newsContent = JSON.stringify(newsData, null, 2);
       }
 
       // 清理和格式化内容
-      content = content.replace(/\n{3,}/g, '\n\n').trim();
-
-      // 分割内容为行，并添加到消息中
-      const lines = content.split('\n');
-      let isInCodeBlock = false;
-
-      for (const line of lines) {
-        if (line.trim().startsWith('```')) {
-          isInCodeBlock = !isInCodeBlock;
-          message.content.rich_text.push({
-            tag: "text",
-            text: line + '\n',
-            style: isInCodeBlock ? {
-              font_family: "monospace",
-              bg_color: "#F5F5F5"
-            } : {}
-          });
-        } else if (isInCodeBlock) {
-          message.content.rich_text.push({
-            tag: "text",
-            text: line + '\n',
-            style: {
-              font_family: "monospace",
-              bg_color: "#F5F5F5"
-            }
-          });
-        } else if (line.trim()) {
-          // 检测是否为标题或重要信息
-          if (line.match(/^[#*]/) || line.includes('热点') || line.includes('新闻') || line.includes('资讯')) {
-            message.content.rich_text.push({
-              tag: "text",
-              text: line + '\n',
-              style: {
-                bold: true,
-                font_color: "#333333"
-              }
-            });
-          } else {
-            message.content.rich_text.push({
-              tag: "text",
-              text: line + '\n',
-              style: {
-                font_color: "#333333"
-              }
-            });
-          }
-        } else {
-          message.content.rich_text.push({
-            tag: "text",
-            text: '\n'
-          });
-        }
-      }
-
-      // 添加尾部信息
-      message.content.rich_text.push(
-        {
-          tag: "text",
-          text: "\n",
-          style: {}
-        },
-        {
-          tag: "text",
-          text: "🤖 ",
-          style: {}
-        },
-        {
-          tag: "text",
-          text: "由 GitHub Actions 自动推送",
-          style: {
-            font_color: "#999999",
-            font_size: "small"
-          }
-        }
-      );
+      newsContent = newsContent.replace(/\n{3,}/g, '\n\n').trim();
+      content += newsContent;
 
     } catch (error) {
       console.error('格式化消息失败:', error);
-
-      // 发生错误时发送简化消息
-      message.content.rich_text.push({
-        tag: "text",
-        text: `\n❌ 消息格式化失败，原始数据：\n${JSON.stringify(newsData, null, 2)}`,
-        style: {
-          font_color: "#FF0000"
-        }
-      });
+      content += `\n❌ 消息格式化失败，原始数据：\n${JSON.stringify(newsData, null, 2)}`;
     }
+
+    // 添加尾部信息
+    content += `\n\n🤖 由 GitHub Actions 自动推送 | ${now.toLocaleString('zh-CN')}`;
+
+    // 构建post消息
+    const message = {
+      msg_type: "post",
+      content: {
+        post: {
+          zh_cn: {
+            title: "🔥 热点资讯推送",
+            content: [
+              [
+                {
+                  tag: "text",
+                  text: content
+                }
+              ]
+            ]
+          }
+        }
+      }
+    };
 
     return message;
   }

@@ -253,30 +253,130 @@
         "conclusion": "✅ 项目文档更新完成，所有技术细节和使用说明已记录",
         "documentation_summary": "完整的API修复记录、测试验证结果、部署配置说明已更新至项目文档中"
       }
+    },
+    {
+      "id": 8,
+      "name": "优化飞书推送内容格式",
+      "description": "重新设计飞书推送内容的格式，解决markdown表格兼容性问题，提升用户体验",
+      "status": "pending",
+      "pass": false,
+      "details": {
+        "current_issues": [
+          "飞书对复杂markdown表格支持有限",
+          "表格在小屏幕设备上显示效果不佳",
+          "信息密度过高，重点不突出",
+          "缺乏视觉层次和重点标记"
+        ],
+        "optimization_goals": [
+          "移动端友好显示",
+          "重点信息突出",
+          "视觉层次清晰",
+          "内容简洁明了"
+        ],
+        "new_format_design": {
+          "title_style": "🔥 emoji + 加粗标题",
+          "section_structure": "【板块名称】+ emoji + 独立段落",
+          "content_elements": [
+            "✨ 核心驱动：完整保留原始核心驱动信息，仅调整展示格式",
+            "💡 热度标签：保留原始热点概念，用符号标记重点",
+            "📈 关注标的：保留所有相关推荐个股，完整展示"
+          ],
+          "risk_warning": "⚠️ emoji + 原始风险提示",
+          "principle": "仅调整展示结构，保留所有原始信息内容"
+        },
+        "example_format": "🔥 **热点资讯推送** 📅 2025/12/08\n\n🚀【航天（商业航天）】\n✨ 核心驱动：SpaceX估值飙升至8000亿美元（2025年半年翻倍）及2026年IPO计划；国内商业航天政策支持（如《国家航天局推进商业航天高质量安全发展行动计划(2025-2027年)》）；可回收火箭技术突破（如长征十二甲首飞）；卫星互联网组网加速（如星网、垣信低轨星座）\n💡 热点概念：商业航天\n📈 相关推荐个股：航天动力、超捷股份、高华科技、上海瀚讯、铖昌科技、臻镭科技、信科移动、通宇通讯、星图测控、中国卫通",
+        "implementation_phases": [
+          {
+            "phase": 1,
+            "name": "格式解析重构",
+            "tasks": [
+              "修改 feishu_push.js 中的内容格式化函数",
+              "实现新的格式转换逻辑",
+              "添加emoji和符号支持"
+            ]
+          },
+          {
+            "phase": 2,
+            "name": "内容格式化",
+            "tasks": [
+              "实现表格数据到段落结构的转换逻辑",
+              "添加emoji和符号标记，增强可读性",
+              "确保所有原始信息完整保留"
+            ]
+          },
+          {
+            "phase": 3,
+            "name": "测试验证",
+            "tasks": [
+              "本地测试新格式展示效果",
+              "飞书实际推送测试",
+              "移动端显示效果验证"
+            ]
+          },
+          {
+            "phase": 4,
+            "name": "性能优化",
+            "tasks": [
+              "监控新格式的推送成功率",
+              "优化内容长度和推送速度",
+              "添加格式错误处理机制"
+            ]
+          }
+        ],
+        "expected_benefits": {
+          "user_experience": [
+            "可读性提升：结构化展示，层次清晰",
+            "移动端友好：段落格式，适配各种屏幕",
+            "信息完整：保留所有原始工作流数据"
+          ],
+          "content_quality": [
+            "信息完整：不删除或精简任何原始信息",
+            "展示优化：通过结构变化提升阅读体验",
+            "数据完整：保留所有个股推荐和驱动因素"
+          ],
+          "risk_control": [
+            "合规性：保留原始风险提示",
+            "准确性：不修改任何原始数据内容",
+            "及时性：保持原有推送效率"
+          ]
+        },
+        "target_files": [
+          "scripts/feishu_push.js - 主要修改目标",
+          "scripts/main.js - 可能需要调整",
+          "test/ - 添加格式化测试文件"
+        ],
+        "success_criteria": [
+          "新格式在飞书中正确显示",
+          "移动端阅读体验良好",
+          "所有原始信息完整保留（核心驱动、个股推荐、热点概念）",
+          "推送成功率不降低",
+          "不修改任何原始数据内容，仅调整展示结构"
+        ]
+      }
     }
   ],
   "summary": {
     "project_name": "每日热点定时推送",
     "description": "通过GitHub Action定时调用Coze工作流获取热点资讯并推送至飞书",
-    "total_tasks": 7,
+    "total_tasks": 8,
     "completed_tasks": 7,
     "in_progress_tasks": 0,
-    "pending_tasks": 0,
-    "completion_rate": "100.0%",
-    "current_focus": "项目完成，进行最终验证",
+    "pending_tasks": 1,
+    "completion_rate": "87.5%",
+    "current_focus": "优化飞书推送内容格式，提升用户体验",
     "key_issues_found": [
       "使用了不存在的API方法",
       "方法参数格式不正确",
       "需要修复API调用代码"
     ],
     "next_actions": [
-      "所有任务已完成，进行最终验证",
-      "清理测试代码和临时文件",
-      "准备项目部署"
+      "开始实施任务8：优化飞书推送内容格式",
+      "重新设计内容格式化逻辑",
+      "测试新格式的飞书显示效果"
     ],
     "project_completion": {
-      "status": "已完成",
-      "completion_date": "2025-12-08",
+      "status": "即将完成",
+      "completion_date": "待定",
       "total_fixes_applied": 4,
       "major_improvements": [
         "修复Coze API调用方法错误",
@@ -284,7 +384,13 @@
         "修复飞书推送消息格式问题",
         "完善GitHub Actions集成配置"
       ],
-      "verification_status": "所有功能验证通过"
+      "verification_status": "基础功能验证通过，待优化用户体验",
+      "current_optimization": {
+        "focus": "飞书推送内容格式优化",
+        "issue": "markdown表格在飞书中显示效果不佳",
+        "solution": "重新设计适合飞书的内容格式",
+        "target_completion": "尽快"
+      }
     }
   }
 }

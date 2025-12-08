@@ -92,36 +92,28 @@ class FeishuPush {
     // 构建文本消息内容
     let content = `🔥 **热点资讯推送** 📅 ${timeString}\n\n`;
 
-    // 解析并添加热点内容
+    // 解析并格式化热点内容
     try {
       let newsContent = '';
 
-      // 如果有content字段，直接使用
+      // 获取原始内容
       if (newsData.content) {
-        newsContent = typeof newsData.content === 'string'
-          ? newsData.content
-          : JSON.stringify(newsData.content, null, 2);
-      }
-      // 如果有outputs字段，尝试解析
-      else if (newsData.outputs) {
-        newsContent = typeof newsData.outputs === 'string'
-          ? newsData.outputs
-          : JSON.stringify(newsData.outputs, null, 2);
-      }
-      // 如果有result字段，尝试解析
-      else if (newsData.result) {
-        newsContent = typeof newsData.result === 'string'
-          ? newsData.result
-          : JSON.stringify(newsData.result, null, 2);
-      }
-      // 其他情况，序列化整个data对象
-      else {
-        newsContent = JSON.stringify(newsData, null, 2);
+        newsContent = typeof newsData.content === 'string' ? newsData.content : JSON.stringify(newsData.content);
+      } else if (newsData.outputs) {
+        newsContent = typeof newsData.outputs === 'string' ? newsData.outputs : JSON.stringify(newsData.outputs);
+      } else if (newsData.result) {
+        newsContent = typeof newsData.result === 'string' ? newsData.result : JSON.stringify(newsData.result);
+      } else {
+        newsContent = JSON.stringify(newsData);
       }
 
-      // 清理和格式化内容
-      newsContent = newsContent.replace(/\n{3,}/g, '\n\n').trim();
-      content += newsContent;
+      // 检查是否包含markdown表格，如果是则转换为段落格式
+      if (newsContent.includes('|') && newsContent.includes('---')) {
+        content += this.convertMarkdownTableToStructuredFormat(newsContent);
+      } else {
+        // 如果不是表格格式，直接使用原内容
+        content += newsContent.replace(/\n{3,}/g, '\n\n').trim();
+      }
 
     } catch (error) {
       console.error('格式化消息失败:', error);
@@ -152,6 +144,134 @@ class FeishuPush {
     };
 
     return message;
+  }
+
+  // 将markdown表格转换为结构化段落格式
+  convertMarkdownTableToStructuredFormat(tableContent) {
+    try {
+      // 按行分割内容
+      const lines = tableContent.split('\n');
+      let result = '';
+
+      // 查找表格开始位置（找到第一个 | --- | 行）
+      let tableStartIndex = -1;
+      let tableEndIndex = -1;
+
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes('---') && lines[i].includes('|')) {
+          tableStartIndex = i;
+          break;
+        }
+      }
+
+      // 查找表格结束位置
+      if (tableStartIndex > -1) {
+        for (let i = tableStartIndex + 1; i < lines.length; i++) {
+          if (!lines[i].includes('|') && lines[i].trim()) {
+            tableEndIndex = i;
+            break;
+          }
+        }
+      }
+
+      // 如果没有找到表格，返回原内容
+      if (tableStartIndex === -1) {
+        return tableContent;
+      }
+
+      // 保留表格前的内容（如标题等）
+      if (tableStartIndex > 0) {
+        result += lines.slice(0, tableStartIndex).join('\n') + '\n\n';
+      }
+
+      // 提取表格数据行
+      const tableLines = tableEndIndex > -1
+        ? lines.slice(tableStartIndex + 1, tableEndIndex)
+        : lines.slice(tableStartIndex + 1);
+
+      // 解析每一行表格数据
+      tableLines.forEach(line => {
+        const trimmedLine = line.trim();
+        if (trimmedLine.includes('|') && trimmedLine.startsWith('|')) {
+          // 分割列，并过滤空字符串
+          const columns = trimmedLine.split('|')
+            .map(col => col.trim())
+            .filter(col => col !== '');
+
+          // 检查列数量，应该至少有5列（序号、行业、概念、驱动、个股）
+          if (columns.length >= 5) {
+            const index = columns[0];
+            const industry = columns[1];
+            const concept = columns[2];
+            const coreDriver = columns[3];
+            const stocks = columns[4];
+
+            // 验证数据有效性
+            if (industry && concept && coreDriver && stocks) {
+              // 为不同行业选择合适的emoji
+              const industryEmoji = this.getIndustryEmoji(industry);
+
+              // 构建结构化的段落格式
+              result += `${industryEmoji}【${industry}】\n`;
+              result += `✨ 核心驱动：${coreDriver}\n`;
+              result += `💡 热点概念：${concept}\n`;
+              result += `📈 相关推荐个股：${stocks}\n\n`;
+            }
+          }
+        }
+      });
+
+      // 添加风险提示部分（如果有）
+      if (tableEndIndex > -1 && tableEndIndex < lines.length - 1) {
+        const remainingContent = lines.slice(tableEndIndex).join('\n').trim();
+        if (remainingContent) {
+          result += `\n${remainingContent}`;
+        }
+      }
+
+      return result.trim();
+
+    } catch (error) {
+      console.error('表格格式转换失败:', error);
+      // 如果转换失败，返回原始内容
+      return tableContent;
+    }
+  }
+
+  // 根据行业类型获取对应的emoji
+  getIndustryEmoji(industry) {
+    const emojiMap = {
+      '航天': '🚀',
+      '商业航天': '🚀',
+      '卫星互联网': '🌐',
+      '人工智能': '🤖',
+      '端侧AI': '🤖',
+      '具身机器人': '🤖',
+      '量子技术': '⚛️',
+      '量子科技': '⚛️',
+      '机器人': '🦾',
+      '人形机器人': '🦾',
+      '能源': '⚡',
+      '储能': '🔋',
+      '氢能': '🔋',
+      '燃气轮机': '⚙️',
+      '消费': '🛒',
+      '商品消费': '🛒',
+      '服务消费': '🎭',
+      '金融': '💰',
+      '大金融': '💰',
+      '可回收火箭': '🔄'
+    };
+
+    // 查找匹配的emoji
+    for (const [key, emoji] of Object.entries(emojiMap)) {
+      if (industry.includes(key)) {
+        return emoji;
+      }
+    }
+
+    // 默认emoji
+    return '📊';
   }
 
   // 推送热点资讯

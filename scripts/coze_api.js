@@ -128,18 +128,34 @@ class CozeAPIClient {
         const result = await this.getWorkflowResult(targetWorkflowId, runId);
 
         if (result.success) {
-          const status = result.data?.status || result.data?.data?.status;
+          // 修复：API返回的是 execute_status 而不是 status
+          const responseData = Array.isArray(result.data) ? result.data[0] : result.data;
+          const status = responseData?.execute_status || result.data?.status || result.data?.data?.status;
           console.log(`当前状态: ${status}`);
 
-          if (status === 'succeeded') {
+          if (status === 'Success' || status === 'succeeded') {
             console.log('✓ 工作流执行成功');
+
+            // 修复：正确解析输出内容
+            let content = null;
+            const responseData = Array.isArray(result.data) ? result.data[0] : result.data;
+
+            if (responseData?.output) {
+              try {
+                const outputData = JSON.parse(responseData.output);
+                content = outputData.Output || outputData.output || responseData.output;
+              } catch (parseError) {
+                content = responseData.output;
+              }
+            }
+
             const outputs = result.data?.outputs || result.data?.data?.outputs;
             const resultData = result.data?.result || result.data?.data?.result;
 
             return {
               success: true,
               data: result.data,
-              content: outputs || resultData,
+              content: content || outputs || resultData,
               runId: runId,
               executionTime: new Date().toISOString()
             };
@@ -147,7 +163,7 @@ class CozeAPIClient {
             const errorCode = result.data?.error_code || result.data?.data?.error_code;
             const errorMsg = result.data?.message || result.data?.data?.message;
             throw new Error(`工作流执行失败 [${errorCode}]: ${errorMsg}`);
-          } else if (status === 'running' || status === 'pending') {
+          } else if (status === 'running' || status === 'pending' || status === 'Running') {
             console.log('→ 工作流执行中，继续等待...');
             continue;
           } else {

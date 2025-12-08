@@ -283,7 +283,7 @@ class FeishuPush {
         const industryEmoji = this.getIndustryEmoji(industry);
 
         // 格式化每个热点题材
-        result += `**${item.序号}. ${industryEmoji} ${industry}**\n`;
+        result += `${item.序号}. ${industryEmoji} ${industry}\n`;
         result += `💡 热点概念：${item['热点概念（平台内高频讨论主题）'] || ''}\n`;
         result += `⚡ 核心驱动：${item['核心驱动（事件 / 趋势 / 数据）'] || ''}\n`;
         result += `📈 相关推荐个股：${item['相关推荐个股（若有）'] || ''}\n`;
@@ -373,7 +373,7 @@ class FeishuPush {
               const industryEmoji = this.getIndustryEmoji(industry);
 
               // 构建更清晰的结构化段落格式
-              result += `**${index}. ${industryEmoji} ${industry}**\n`;
+              result += `${index}. ${industryEmoji} ${industry}\n`;
               result += `💡 热点概念：${concept}\n`;
               result += `⚡ 核心驱动：${coreDriver}\n`;
               result += `📈 相关推荐个股：${stocks}\n`;

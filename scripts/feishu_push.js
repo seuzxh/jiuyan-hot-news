@@ -233,6 +233,10 @@ class FeishuPush {
             // 再次尝试解析内层 JSON
             try {
               const innerParsed = JSON.parse(innerContent);
+              // 检查是否是新的格式（包含文档说明和热点题材列表）
+              if (innerParsed.文档说明 && innerParsed.热点题材列表) {
+                return this.formatNewStructuredJson(innerParsed);
+              }
               return innerParsed.output || innerParsed.Output || innerContent;
             } catch {
               // 如果内层 JSON 解析失败，但包含表格标记，直接返回
@@ -261,6 +265,39 @@ class FeishuPush {
       console.log('JSON 解析失败，返回原始内容:', error.message);
       return content;
     }
+  }
+
+  // 格式化新的结构化JSON数据
+  formatNewStructuredJson(data) {
+    let result = '';
+
+    // 添加文档标题
+    if (data.文档说明) {
+      result += `📊 **${data.文档说明}** 📊\n\n`;
+    }
+
+    // 处理热点题材列表
+    if (data.热点题材列表 && Array.isArray(data.热点题材列表)) {
+      data.热点题材列表.forEach((item, index) => {
+        // 获取行业emoji
+        const industry = item['关联行业 / 领域'] || '';
+        const industryEmoji = this.getIndustryEmoji(industry);
+
+        // 格式化每个热点题材
+        result += `**${item.序号}. ${industryEmoji} ${industry}**\n`;
+        result += `💡 **热点概念：** ${item['热点概念（平台内高频讨论主题）'] || ''}\n`;
+        result += `⚡ **核心驱动：** ${item['核心驱动（事件 / 趋势 / 数据）'] || ''}\n`;
+        result += `📈 **相关推荐个股：** ${item['相关推荐个股（若有）'] || ''}\n`;
+        result += `${'─'.repeat(30)}\n\n`;
+      });
+    }
+
+    // 添加风险提示
+    if (data.风险提示) {
+      result += `📋 **重要提示：**\n${data.风险提示}`;
+    }
+
+    return result.trim();
   }
 
   // 将markdown表格转换为结构化段落格式

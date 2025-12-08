@@ -2,8 +2,8 @@ name: 每10分钟热点定时推送
 
 on:
   schedule:
-    # 每10分钟触发一次 (UTC时间)
-    - cron: '*/10 * * * *'
+    # 每20分钟触发一次 (UTC时间)
+    - cron: '*/20 * * * *'
   workflow_dispatch: # 允许手动触发
   push:
     branches: [ main, master ]
@@ -135,6 +135,15 @@ jobs:
       with:
         node-version: '18'
         cache: 'npm'
+
+    - name: 调试信息
+      run: |
+        echo "=== 调试信息 ==="
+        echo "当前时间 (UTC): $(date '+%Y-%m-%d %H:%M:%S UTC')"
+        echo "当前时间 (Asia/Shanghai): $(date -d '8 hours' '+%Y-%m-%d %H:%M:%S Asia/Shanghai')"
+        echo "工作流触发事件: ${{ github.event_name }}"
+        echo "仓库: ${{ github.repository }}"
+        echo "分支: ${{ github.ref }}"
 
     - name: 安装依赖
       run: npm install

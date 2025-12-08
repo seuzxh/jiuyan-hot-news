@@ -85,13 +85,16 @@ class FeishuPush {
   // 格式化热点资讯消息
   formatHotNewsMessage(newsData) {
     const now = new Date();
-    const timeString = now.toLocaleString('zh-CN', {
+    // 使用北京时间（UTC+8）格式化时间
+    const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+    const timeString = beijingTime.toLocaleString('zh-CN', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false
+      hour12: false,
+      timeZone: 'Asia/Shanghai'
     });
 
     // 构建文本消息内容

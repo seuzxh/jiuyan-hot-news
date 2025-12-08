@@ -1,0 +1,24 @@
+{
+  "timestamp": "2025-12-08T03:59:42.172Z",
+  "originalDataSize": 2930,
+  "formattedMessage": {
+    "msg_type": "post",
+    "content": {
+      "post": {
+        "zh_cn": {
+          "title": "🔥 热点资讯推送",
+          "content": [
+            [
+              {
+                "tag": "text",
+                "text": "🔥 **热点资讯推送** 📅 2025/12/08 11:59\n\n# Top 10 热点题材整理清单  \\\\\n\n📊 **Top 10 热点题材整理清单** 📊\n\n🤖 由 GitHub Actions 自动推送 | 2025/12/8 11:59:42"
+              }
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "messageSize": 247,
+  "textContent": "🔥 **热点资讯推送** 📅 2025/12/08 11:59\n\n# Top 10 热点题材整理清单  \\\\\n\n📊 **Top 10 热点题材整理清单** 📊\n\n🤖 由 GitHub Actions 自动推送 | 2025/12/8 11:59:42"
+}

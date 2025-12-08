@@ -23,7 +23,10 @@
       "WebFetch(domain:www.npmjs.com)",
       "Bash(del:*)",
       "Bash(find:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(ping:*)",
+      "Bash(curl:*)",
+      "Bash(set NODE_TLS_REJECT_UNAUTHORIZED=0:*)"
     ],
     "deny": [],
     "ask": []

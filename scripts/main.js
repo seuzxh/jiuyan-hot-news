@@ -2,8 +2,62 @@
 
 // 每日热点推送主执行脚本
 const fs = require('fs');
+const path = require('path');
 const CozeAPIClient = require('./coze_api');
 const FeishuPush = require('./feishu_push');
+
+// 从 .env 文件加载环境变量
+function loadEnvFile() {
+  const envPath = path.join(process.cwd(), '.env');
+
+  if (!fs.existsSync(envPath)) {
+    log('info', '.env 文件不存在，跳过本地配置加载');
+    return false;
+  }
+
+  try {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    const envLines = envContent.split('\n');
+
+    log('info', '正在加载 .env 文件配置...');
+
+    for (const line of envLines) {
+      const trimmedLine = line.trim();
+
+      // 跳过注释和空行
+      if (!trimmedLine || trimmedLine.startsWith('#')) {
+        continue;
+      }
+
+      // 解析键值对
+      const equalIndex = trimmedLine.indexOf('=');
+      if (equalIndex === -1) {
+        continue;
+      }
+
+      const key = trimmedLine.substring(0, equalIndex).trim();
+      let value = trimmedLine.substring(equalIndex + 1).trim();
+
+      // 移除引号
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+
+      // 只设置未定义的环境变量
+      if (!process.env[key]) {
+        process.env[key] = value;
+        log('debug', `已设置环境变量: ${key}`);
+      }
+    }
+
+    log('info', '.env 文件加载成功');
+    return true;
+  } catch (error) {
+    log('error', `加载 .env 文件失败: ${error.message}`);
+    return false;
+  }
+}
 
 // 日志记录函数
 function log(level, message) {
@@ -48,15 +102,18 @@ async function main() {
   log('info', '开始执行每日热点推送任务');
 
   try {
-    // 1. 检查环境变量
+    // 1. 加载 .env 文件（如果存在）
+    loadEnvFile();
+
+    // 2. 检查环境变量
     checkEnvironmentVariables();
 
-    // 2. 初始化API客户端
+    // 3. 初始化API客户端
     log('info', '初始化API客户端');
     const cozeAPI = new CozeAPIClient(process.env.COZE_API_TOKEN);
     const feishuPush = new FeishuPush(process.env.FEISHU_WEBHOOK_URL);
 
-    // 3. 获取热点资讯
+    // 4. 获取热点资讯
     log('info', '开始获取热点资讯');
     const newsResult = await cozeAPI.getHotNews();
 
@@ -66,7 +123,7 @@ async function main() {
 
     log('info', `热点资讯获取成功，数据大小: ${JSON.stringify(newsResult).length} 字符`);
 
-    // 4. 推送到飞书
+    // 5. 推送到飞书
     log('info', '开始推送到飞书');
     const pushResult = await feishuPush.pushHotNews(newsResult);
 
@@ -177,15 +234,18 @@ async function runTestMode() {
   log('info', '进入测试模式');
 
   try {
-    // 1. 检查环境变量
+    // 1. 加载 .env 文件（如果存在）
+    loadEnvFile();
+
+    // 2. 检查环境变量
     checkEnvironmentVariables();
 
-    // 2. 测试Coze API连接
+    // 3. 测试Coze API连接
     log('info', '测试Coze API连接');
     const cozeAPI = new CozeAPIClient(process.env.COZE_API_TOKEN);
     console.log('Coze API配置正常，Token已设置');
 
-    // 3. 测试飞书推送
+    // 4. 测试飞书推送
     log('info', '测试飞书推送连接');
     const feishuPush = new FeishuPush(process.env.FEISHU_WEBHOOK_URL);
     const testResult = await feishuPush.sendTestMessage();

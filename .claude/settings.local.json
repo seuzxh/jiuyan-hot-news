@@ -22,7 +22,8 @@
       "WebFetch(domain:docs.coze.com)",
       "WebFetch(domain:www.npmjs.com)",
       "Bash(del:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

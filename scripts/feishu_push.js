@@ -95,7 +95,7 @@ class FeishuPush {
     });
 
     // 构建文本消息内容
-    let content = `🔥 热点资讯推送 📅 ${timeString}\n\n`;
+    let content = `🔥 Top 10 热点题材推送 📅 ${timeString}\n\n`;
 
     // 解析并格式化热点内容
     try {
@@ -128,7 +128,7 @@ class FeishuPush {
       content: {
         post: {
           zh_cn: {
-            title: "热点资讯推送",
+            title: "Top 10 热点题材推送",
             content: [
               [
                 {
@@ -270,10 +270,7 @@ class FeishuPush {
   formatNewStructuredJson(data) {
     let result = '';
 
-    // 添加文档标题
-    if (data.文档说明) {
-      result += `📊 ${data.文档说明} 📊\n\n`;
-    }
+    // 标题已在消息头部显示，不需要重复添加
 
     // 处理热点题材列表
     if (data.热点题材列表 && Array.isArray(data.热点题材列表)) {
@@ -342,8 +339,7 @@ class FeishuPush {
         result += lines.slice(0, tableStartIndex - 1).join('\n') + '\n\n';
       }
 
-      // 添加标题和表格说明
-      result += '📊 Top 10 热点题材整理清单 📊\n\n';
+      // 标题已在消息头部显示，不需要重复添加
 
       // 提取表格数据行
       const tableLines = tableEndIndex > -1

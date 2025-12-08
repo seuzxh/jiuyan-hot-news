@@ -95,7 +95,7 @@ class FeishuPush {
     });
 
     // 构建文本消息内容
-    let content = `🔥 **热点资讯推送** 📅 ${timeString}\n\n`;
+    let content = `🔥 热点资讯推送 📅 ${timeString}\n\n`;
 
     // 解析并格式化热点内容
     try {
@@ -120,8 +120,7 @@ class FeishuPush {
       content += `\n❌ 消息格式化失败，原始数据：\n${JSON.stringify(newsData, null, 2)}`;
     }
 
-    // 添加尾部信息
-    content += `\n\n🤖 由 GitHub Actions 自动推送 | ${now.toLocaleString('zh-CN')}`;
+    // 不添加尾部信息，保持内容简洁
 
     // 构建post消息
     const message = {
@@ -129,7 +128,7 @@ class FeishuPush {
       content: {
         post: {
           zh_cn: {
-            title: "🔥 热点资讯推送",
+            title: "热点资讯推送",
             content: [
               [
                 {
@@ -273,7 +272,7 @@ class FeishuPush {
 
     // 添加文档标题
     if (data.文档说明) {
-      result += `📊 **${data.文档说明}** 📊\n\n`;
+      result += `📊 ${data.文档说明} 📊\n\n`;
     }
 
     // 处理热点题材列表
@@ -285,17 +284,14 @@ class FeishuPush {
 
         // 格式化每个热点题材
         result += `**${item.序号}. ${industryEmoji} ${industry}**\n`;
-        result += `💡 **热点概念：** ${item['热点概念（平台内高频讨论主题）'] || ''}\n`;
-        result += `⚡ **核心驱动：** ${item['核心驱动（事件 / 趋势 / 数据）'] || ''}\n`;
-        result += `📈 **相关推荐个股：** ${item['相关推荐个股（若有）'] || ''}\n`;
+        result += `💡 热点概念：${item['热点概念（平台内高频讨论主题）'] || ''}\n`;
+        result += `⚡ 核心驱动：${item['核心驱动（事件 / 趋势 / 数据）'] || ''}\n`;
+        result += `📈 相关推荐个股：${item['相关推荐个股（若有）'] || ''}\n`;
         result += `${'─'.repeat(30)}\n\n`;
       });
     }
 
-    // 添加风险提示
-    if (data.风险提示) {
-      result += `📋 **重要提示：**\n${data.风险提示}`;
-    }
+    // 不添加风险提示，保持内容简洁
 
     return result.trim();
   }
@@ -347,7 +343,7 @@ class FeishuPush {
       }
 
       // 添加标题和表格说明
-      result += '📊 **Top 10 热点题材整理清单** 📊\n\n';
+      result += '📊 Top 10 热点题材整理清单 📊\n\n';
 
       // 提取表格数据行
       const tableLines = tableEndIndex > -1
@@ -378,22 +374,16 @@ class FeishuPush {
 
               // 构建更清晰的结构化段落格式
               result += `**${index}. ${industryEmoji} ${industry}**\n`;
-              result += `💡 **热点概念：** ${concept}\n`;
-              result += `⚡ **核心驱动：** ${coreDriver}\n`;
-              result += `📈 **相关推荐个股：** ${stocks}\n`;
+              result += `💡 热点概念：${concept}\n`;
+              result += `⚡ 核心驱动：${coreDriver}\n`;
+              result += `📈 相关推荐个股：${stocks}\n`;
               result += `${'─'.repeat(30)}\n\n`;
             }
           }
         }
       });
 
-      // 添加风险提示部分（如果有）
-      if (tableEndIndex > -1 && tableEndIndex < lines.length - 1) {
-        const remainingContent = lines.slice(tableEndIndex).join('\n').trim();
-        if (remainingContent) {
-          result += `\n📋 **重要提示：**\n${remainingContent}`;
-        }
-      }
+      // 不添加风险提示部分，保持内容简洁
 
       return result.trim();
 

@@ -116,7 +116,7 @@ class CozeAPIClient {
       // 第二步：等待并获取结果
       console.log('步骤2: 等待工作流执行完成...');
       let attempts = 0;
-      const maxAttempts = 90; // 减少到30次，每次10秒，总计15分钟
+      const maxAttempts = 180; // 180次，每次10秒，总计30分钟
 
       while (attempts < maxAttempts) {
         attempts++;

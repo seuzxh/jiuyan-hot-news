@@ -123,6 +123,7 @@ jobs:
   fetch-and-push-hot-news:
     name: 执行热点推送
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     needs: setup
     if: success()
 

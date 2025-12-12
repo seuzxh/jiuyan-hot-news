@@ -73,6 +73,30 @@ function log(level, message) {
   }
 }
 
+// 检查当前时间是否在指定的推送时间内
+function shouldPushToFeishu() {
+  const now = new Date();
+  const utcHour = now.getUTCHours();
+  const utcMinute = now.getUTCMinutes();
+
+  log('info', `当前UTC时间: ${utcHour.toString().padStart(2, '0')}:${utcMinute.toString().padStart(2, '0')}`);
+
+  // 推送时间：UTC 8:30, 12:00, 20:00 (对应北京时间 16:30, 20:00, 次日4:00)
+  const is830 = utcHour === 8 && utcMinute === 30;
+  const is1200 = utcHour === 12 && utcMinute === 0;
+  const is2000 = utcHour === 20 && utcMinute === 0;
+
+  const shouldPush = is830 || is1200 || is2000;
+
+  if (shouldPush) {
+    log('info', '✅ 当前时间在指定推送时间内，将执行飞书推送');
+  } else {
+    log('info', '❌ 当前时间不在指定推送时间内，将跳过飞书推送');
+  }
+
+  return shouldPush;
+}
+
 // 环境变量检查
 function checkEnvironmentVariables() {
   const requiredEnvVars = [
@@ -113,7 +137,7 @@ async function main() {
     const cozeAPI = new CozeAPIClient(process.env.COZE_API_TOKEN);
     const feishuPush = new FeishuPush(process.env.FEISHU_WEBHOOK_URL);
 
-    // 4. 获取热点资讯
+    // 4. 获取热点资讯（每次都执行）
     log('info', '开始获取热点资讯');
     const newsResult = await cozeAPI.getHotNews();
 
@@ -123,15 +147,26 @@ async function main() {
 
     log('info', `热点资讯获取成功，数据大小: ${JSON.stringify(newsResult).length} 字符`);
 
-    // 5. 推送到飞书
-    log('info', '开始推送到飞书');
-    const pushResult = await feishuPush.pushHotNews(newsResult);
+    // 5. 检查是否需要推送到飞书
+    const shouldPush = shouldPushToFeishu();
+    let pushResult = null;
+    let stepsCompleted = ['环境变量检查', '获取热点资讯'];
 
-    if (!pushResult.success) {
-      throw new Error(`推送到飞书失败: ${pushResult.error}`);
+    if (shouldPush) {
+      // 6. 推送到飞书
+      log('info', '开始推送到飞书');
+      pushResult = await feishuPush.pushHotNews(newsResult);
+
+      if (!pushResult.success) {
+        throw new Error(`推送到飞书失败: ${pushResult.error}`);
+      }
+
+      log('info', '飞书推送成功');
+      stepsCompleted.push('推送到飞书');
+    } else {
+      log('info', '跳过飞书推送步骤');
     }
 
-    log('info', '飞书推送成功');
     log('info', '每日热点推送任务完成');
 
     // 输出执行摘要
@@ -139,7 +174,7 @@ async function main() {
     console.log(`✅ 任务状态: 成功`);
     console.log(`📅 执行时间: ${new Date().toLocaleString('zh-CN')}`);
     console.log(`📰 资讯获取: 成功`);
-    console.log(`📱 飞书推送: 成功`);
+    console.log(`📱 飞书推送: ${shouldPush ? '成功' : '跳过'}`);
     console.log(`📝 数据大小: ${JSON.stringify(newsResult).length} 字符`);
     console.log('=================\n');
 
@@ -149,7 +184,8 @@ async function main() {
       summary: {
         executionTime: new Date().toISOString(),
         newsDataSize: JSON.stringify(newsResult).length,
-        stepsCompleted: ['环境变量检查', '获取热点资讯', '推送到飞书']
+        stepsCompleted: stepsCompleted,
+        feishuPushSkipped: !shouldPush
       }
     };
 

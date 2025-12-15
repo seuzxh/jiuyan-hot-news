@@ -188,20 +188,7 @@ jobs:
         COZE_WORKFLOW_ID: ${{ secrets.COZE_WORKFLOW_ID }}
         FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
 
-    - name: 测试模式执行
-      id: test-run
-      env:
-        COZE_API_TOKEN: ${{ secrets.COZE_API_TOKEN }}
-        COZE_WORKFLOW_ID: ${{ secrets.COZE_WORKFLOW_ID }}
-        FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
-        NODE_ENV: production
-      run: |
-        echo "=== 运行测试模式 ==="
-        node scripts/main.js --test
-        echo "=== 测试模式完成 ==="
-
     - name: 正式执行热点推送
-      if: steps.test-run.outcome == 'success'
       env:
         COZE_API_TOKEN: ${{ secrets.COZE_API_TOKEN }}
         COZE_WORKFLOW_ID: ${{ secrets.COZE_WORKFLOW_ID }}

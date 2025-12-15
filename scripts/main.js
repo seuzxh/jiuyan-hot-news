@@ -227,14 +227,11 @@ async function main() {
 function parseArguments() {
   const args = process.argv.slice(2);
   const options = {
-    test: false,
     verbose: false
   };
 
   for (const arg of args) {
-    if (arg === '--test' || arg === '-t') {
-      options.test = true;
-    } else if (arg === '--verbose' || arg === '-v') {
+    if (arg === '--verbose' || arg === '-v') {
       options.verbose = true;
     } else if (arg === '--help' || arg === '-h') {
       console.log(`
@@ -243,7 +240,6 @@ function parseArguments() {
 用法: node main.js [选项]
 
 选项:
-  -t, --test     运行测试模式（仅测试连接，不执行完整流程）
   -v, --verbose  详细输出模式
   -h, --help     显示帮助信息
 
@@ -255,7 +251,6 @@ function parseArguments() {
 
 示例:
   node main.js                    # 正常执行
-  node main.js --test             # 测试模式
   node main.js --verbose          # 详细模式
       `);
       process.exit(0);
@@ -265,65 +260,19 @@ function parseArguments() {
   return options;
 }
 
-// 测试模式函数
-async function runTestMode() {
-  log('info', '进入测试模式');
-
-  try {
-    // 1. 加载 .env 文件（如果存在）
-    loadEnvFile();
-
-    // 2. 检查环境变量
-    checkEnvironmentVariables();
-
-    // 3. 测试Coze API连接
-    log('info', '测试Coze API连接');
-    const cozeAPI = new CozeAPIClient(process.env.COZE_API_TOKEN);
-    console.log('Coze API配置正常，Token已设置');
-
-    // 4. 测试飞书推送
-    log('info', '测试飞书推送连接');
-    const feishuPush = new FeishuPush(process.env.FEISHU_WEBHOOK_URL);
-    const testResult = await feishuPush.sendTestMessage();
-
-    if (testResult.success) {
-      log('info', '测试完成，所有连接正常');
-      console.log('\n✅ 测试结果: 所有连接正常，可以执行完整流程');
-      return { success: true, message: '测试通过' };
-    } else {
-      throw new Error(`飞书测试失败: ${testResult.error}`);
-    }
-
-  } catch (error) {
-    log('error', `测试失败: ${error.message}`);
-    console.error(`\n❌ 测试失败: ${error.message}`);
-    return { success: false, error: error.message };
-  }
-}
 
 // 程序入口
 if (require.main === module) {
   const options = parseArguments();
 
-  if (options.test) {
-    runTestMode()
-      .then(result => {
-        process.exit(result.success ? 0 : 1);
-      })
-      .catch(error => {
-        console.error('测试执行出错:', error);
-        process.exit(1);
-      });
-  } else {
-    main()
-      .then(result => {
-        process.exit(result.success ? 0 : 1);
-      })
-      .catch(error => {
-        console.error('主程序执行出错:', error);
-        process.exit(1);
-      });
-  }
+  main()
+    .then(result => {
+      process.exit(result.success ? 0 : 1);
+    })
+    .catch(error => {
+      console.error('主程序执行出错:', error);
+      process.exit(1);
+    });
 }
 
-module.exports = { main, runTestMode };
+module.exports = { main };

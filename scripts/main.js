@@ -75,19 +75,20 @@ function log(level, message) {
 
 // 检查当前时间是否在指定的推送时间内
 function shouldPushToFeishu() {
-  return true;
   const now = new Date();
   const utcHour = now.getUTCHours();
   const utcMinute = now.getUTCMinutes();
 
   log('info', `当前UTC时间: ${utcHour.toString().padStart(2, '0')}:${utcMinute.toString().padStart(2, '0')}`);
 
-  // 推送时间：UTC 8:30, 12:00, 20:00 (对应北京时间 16:30, 20:00, 次日4:00)
-  const is830 = utcHour === 8 && utcMinute === 30;
-  const is1200 = utcHour === 12 && utcMinute === 0;
-  const is2000 = utcHour === 20 && utcMinute === 0;
+  // 推送时间窗口：UTC 8:25-8:35, 11:55-12:05, 19:55-20:05 (对应北京时间 16:25-16:35, 19:55-20:05, 次日3:55-4:05)
+  const is830Window = utcHour === 8 && utcMinute >= 25 && utcMinute <= 35;
+  const is1200Window = (utcHour === 11 && utcMinute >= 55) ||
+                      (utcHour === 12 && utcMinute <= 5);
+  const is2000Window = (utcHour === 19 && utcMinute >= 55) ||
+                      (utcHour === 20 && utcMinute <= 5);
 
-  const shouldPush = is830 || is1200 || is2000;
+  const shouldPush = is830Window || is1200Window || is2000Window;
 
   if (shouldPush) {
     log('info', '✅ 当前时间在指定推送时间内，将执行飞书推送');

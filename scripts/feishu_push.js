@@ -550,5 +550,6 @@ class FeishuPush {
       };
     }
   }
+}
 
 module.exports = FeishuPush;

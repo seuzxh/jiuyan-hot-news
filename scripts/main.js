@@ -75,6 +75,7 @@ function log(level, message) {
 
 // 检查当前时间是否在指定的推送时间内
 function shouldPushToFeishu() {
+  return true;
   const now = new Date();
   const utcHour = now.getUTCHours();
   const utcMinute = now.getUTCMinutes();

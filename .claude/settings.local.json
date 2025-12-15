@@ -27,7 +27,8 @@
       "Bash(ping:*)",
       "Bash(curl:*)",
       "Bash(set NODE_TLS_REJECT_UNAUTHORIZED=0:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

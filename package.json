@@ -7,7 +7,11 @@
     "start": "node scripts/main.js",
     "test": "node scripts/main.js --test",
     "lint": "echo '暂未配置代码检查'",
-    "install-deps": "npm install"
+    "install-deps": "npm install",
+    "local": "node scripts/local_main.js",
+    "scheduler": "node scripts/scheduler.js",
+    "scheduler-now": "node scripts/scheduler.js --now",
+    "scheduler-status": "node scripts/scheduler.js --status"
   },
   "keywords": [
     "github-actions",
@@ -21,6 +25,7 @@
   "dependencies": {
     "@coze/api": "^1.3.9",
     "dotenv": "^17.2.3",
+    "node-cron": "^4.2.1",
     "node-fetch": "^2.7.0"
   },
   "engines": {

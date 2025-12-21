@@ -122,8 +122,8 @@ class CozeAPIClient {
         attempts++;
         console.log(`检查工作流状态 (${attempts}/${maxAttempts})...`);
 
-        // 等待10秒
-        await new Promise(resolve => setTimeout(resolve, 10000));
+        // 等待60秒
+        await new Promise(resolve => setTimeout(resolve, 60000));
 
         const result = await this.getWorkflowResult(targetWorkflowId, runId);
 

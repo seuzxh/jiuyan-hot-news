@@ -28,7 +28,8 @@
       "Bash(curl:*)",
       "Bash(set NODE_TLS_REJECT_UNAUTHORIZED=0:*)",
       "Bash(dir:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npm run local)"
     ],
     "deny": [],
     "ask": []

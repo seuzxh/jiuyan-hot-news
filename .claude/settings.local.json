@@ -16,6 +16,7 @@
       "Bash(npm install:*)",
       "Bash(yamllint:*)",
       "Bash(python:*)",
+      "Bash(python3:*)",
       "mcp__context7__resolve-library-id",
       "mcp__context7__get-library-docs",
       "WebSearch",
@@ -37,5 +38,55 @@
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "context7"
-  ]
+  ],
+  "plugins": [
+    "./memory-plugin"
+  ],
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/memory-plugin/hooks/session-start.sh\"",
+            "timeout": 12
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/memory-plugin/hooks/user-prompt-submit.sh\"",
+            "timeout": 8
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/memory-plugin/hooks/stop.sh\"",
+            "async": true,
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/memory-plugin/hooks/session-end.sh\"",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
 }

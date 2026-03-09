@@ -4,6 +4,9 @@
 .env.*.local
 .mcp.json
 
+# OpenViking memory plugin 运行时状态
+.openviking/
+
 # 日志文件
 *.log
 progress.log

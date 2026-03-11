@@ -87,7 +87,6 @@ class FeishuPush {
     const now = new Date();
     // 使用北京时间（UTC+8）格式化时间
     const timeString = now.toLocaleString('zh-CN', {
-      year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
@@ -96,46 +95,131 @@ class FeishuPush {
       timeZone: 'Asia/Shanghai'
     });
 
-    // 构建文本消息内容
-    let content = `🔥 Top 10 热点题材推送 📅 ${timeString}\n\n`;
-
     // 解析并格式化热点内容
     try {
-      let newsContent = '';
+      let newsContent = this.extractNewsContent(newsData);
 
-      // 增强的内容解析逻辑
-      newsContent = this.extractNewsContent(newsData);
-
-      console.log('解析后的内容长度:', newsContent.length);
-      console.log('是否包含表格:', newsContent.includes('|') && newsContent.includes('---'));
-
-      // 检查是否包含markdown表格，如果是则转换为段落格式
-      if (newsContent.includes('|') && newsContent.includes('---')) {
-        content += this.convertMarkdownTableToStructuredFormat(newsContent);
-      } else {
-        // 如果不是表格格式，直接使用原内容
-        content += newsContent.replace(/\n{3,}/g, '\n\n').trim();
+      // 检查是否是新的结构化JSON格式
+      if (newsContent.includes('热点题材列表')) {
+        const items = this.parseStructuredNews(newsContent);
+        return this.buildInteractiveMessage(items, timeString);
       }
+
+      // 检查是否包含markdown表格
+      if (newsContent.includes('|') && newsContent.includes('---')) {
+        const items = this.parseTableNews(newsContent);
+        return this.buildInteractiveMessage(items, timeString);
+      }
+
+      // 其他格式直接显示
+      return this.buildTextMessage(newsContent, timeString);
 
     } catch (error) {
       console.error('格式化消息失败:', error);
-      content += `\n❌ 消息格式化失败，原始数据：\n${JSON.stringify(newsData, null, 2)}`;
+      return this.buildTextMessage('内容解析失败，请稍后重试', timeString);
     }
+  }
 
-    // 不添加尾部信息，保持内容简洁
+  // 解析结构化JSON数据
+  parseStructuredNews(content) {
+    try {
+      const data = JSON.parse(content);
+      if (data.热点题材列表 && Array.isArray(data.热点题材列表)) {
+        return data.热点题材列表.map(item => ({
+          industry: item['关联行业 / 领域'] || '',
+          concept: item['热点概念（平台内高频讨论主题）'] || '',
+          driver: item['核心驱动（事件 / 趋势 / 数据）'] || '',
+          stocks: item['相关推荐个股（若有）'] || ''
+        }));
+      }
+    } catch (e) {
+      console.log('JSON解析失败，尝试其他方式');
+    }
+    return [];
+  }
 
-    // 构建post消息
+  // 解析表格格式数据
+  parseTableNews(tableContent) {
+    const items = [];
+    const lines = tableContent.split('\n');
+
+    for (const line of lines) {
+      if (line.includes('|') && line.startsWith('|') && !line.includes('---')) {
+        const columns = line.split('|').map(col => col.trim()).filter(col => col !== '');
+        if (columns.length >= 5) {
+          items.push({
+            industry: columns[1],
+            concept: columns[2],
+            driver: columns[3],
+            stocks: columns[4]
+          });
+        }
+      }
+    }
+    return items;
+  }
+
+  // 构建交互式消息（使用飞书卡片格式）
+  buildInteractiveMessage(items, timeString) {
+    // 构建内容文本
+    let contentText = `📅 ${timeString}\n\n`;
+
+    items.slice(0, 10).forEach((item, index) => {
+      const emoji = this.getIndustryEmoji(item.industry);
+      contentText += `${index + 1}. ${emoji} ${item.industry}\n`;
+      contentText += `   💡 ${item.concept}\n`;
+      if (item.stocks) {
+        contentText += `   📈 ${item.stocks}\n`;
+      }
+      contentText += '\n';
+    });
+
+    contentText += '⚠️ 仅供参考，不构成投资建议';
+
     const message = {
+      msg_type: "interactive",
+      card: {
+        header: {
+          title: {
+            tag: "plain_text",
+            content: "🔥 今日热点题材 Top 10"
+          },
+          template: "blue"
+        },
+        elements: [
+          {
+            tag: "markdown",
+            content: contentText
+          },
+          {
+            tag: "note",
+            elements: [
+              {
+                tag: "plain_text",
+                content: "数据来源：韭菜公社"
+              }
+            ]
+          }
+        ]
+      }
+    };
+
+    return message;
+  }
+
+  // 构建纯文本消息（备用）
+  buildTextMessage(content, timeString) {
+    return {
       msg_type: "post",
       content: {
         post: {
           zh_cn: {
-            title: "Top 10 热点题材推送",
+            title: "🔥 今日热点题材",
             content: [
               [
                 {
                   tag: "text",
-                  text: content
+                  text: `📅 ${timeString}\n\n${content}\n\n⚠️ 仅供参考，不构成投资建议`
                 }
               ]
             ]
@@ -143,8 +227,6 @@ class FeishuPush {
         }
       }
     };
-
-    return message;
   }
 
   // 增强的内容提取函数

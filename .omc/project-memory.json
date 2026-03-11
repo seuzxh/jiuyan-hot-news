@@ -1,0 +1,138 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1773213773600,
+  "projectRoot": "E:\\5.Quant\\0.jiuyan-hot-news",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": ">=14.0.0",
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": "npm",
+    "runtime": "Node.js 14.0.0"
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": "npm test",
+    "lintCommand": "npm run lint",
+    "devCommand": "npm run start",
+    "scripts": {
+      "start": "node scripts/main.js",
+      "test": "node scripts/main.js --test",
+      "lint": "echo '暂未配置代码检查'",
+      "install-deps": "npm install",
+      "local": "node scripts/local_main.js",
+      "scheduler": "node scripts/scheduler.js",
+      "scheduler-now": "node scripts/scheduler.js --now",
+      "scheduler-status": "node scripts/scheduler.js --status"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "scripts"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 5,
+      "lastAccessed": 1773213773526,
+      "keyFiles": [
+        "coze_api.js",
+        "feishu_push.js",
+        "local_main.js",
+        "main.js",
+        "scheduler.js"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "scripts\\main.js",
+      "accessCount": 4,
+      "lastAccessed": 1773224335863,
+      "type": "file"
+    },
+    {
+      "path": "scripts\\feishu_push.js",
+      "accessCount": 4,
+      "lastAccessed": 1773224406098,
+      "type": "file"
+    },
+    {
+      "path": "scripts\\coze_api.js",
+      "accessCount": 2,
+      "lastAccessed": 1773216048340,
+      "type": "file"
+    },
+    {
+      "path": ".env",
+      "accessCount": 2,
+      "lastAccessed": 1773217951188,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 1,
+      "lastAccessed": 1773214168583,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 1,
+      "lastAccessed": 1773214249148,
+      "type": "file"
+    },
+    {
+      "path": "scripts\\scheduler.js",
+      "accessCount": 1,
+      "lastAccessed": 1773214261493,
+      "type": "file"
+    },
+    {
+      "path": "scripts\\local_main.js",
+      "accessCount": 1,
+      "lastAccessed": 1773214279996,
+      "type": "file"
+    },
+    {
+      "path": ".env.example",
+      "accessCount": 1,
+      "lastAccessed": 1773214280268,
+      "type": "file"
+    },
+    {
+      "path": "CLAUDE.md",
+      "accessCount": 1,
+      "lastAccessed": 1773214290685,
+      "type": "file"
+    },
+    {
+      "path": "progress.log",
+      "accessCount": 1,
+      "lastAccessed": 1773214290897,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

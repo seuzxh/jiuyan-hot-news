@@ -1,35 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:www.jiuyangongshe.com)",
-      "Bash(node:*)",
-      "Bash(tree:*)",
-      "Bash(git init:*)",
-      "Bash(git config:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(gh repo create:*)",
-      "Bash(git remote:*)",
-      "Bash(git push:*)",
-      "Bash(git filter-branch:*)",
-      "Bash(echo:*)",
-      "Bash(npm install:*)",
-      "Bash(yamllint:*)",
-      "Bash(python:*)",
-      "mcp__context7__resolve-library-id",
-      "mcp__context7__get-library-docs",
-      "WebSearch",
-      "WebFetch(domain:docs.coze.com)",
-      "WebFetch(domain:www.npmjs.com)",
-      "Bash(del:*)",
-      "Bash(find:*)",
-      "Bash(git checkout:*)",
-      "Bash(ping:*)",
-      "Bash(curl:*)",
-      "Bash(set NODE_TLS_REJECT_UNAUTHORIZED=0:*)",
-      "Bash(dir:*)",
+      "Bash(CONFIG_FILE=\"$HOME/.claude/.omc-config.json\";:*)",
+      "Edit",
+      "Bash(cd:*)",
       "Bash(cat:*)",
-      "Bash(npm run local)"
+      "Bash(powershell:*)"
     ],
     "deny": [],
     "ask": []
@@ -37,5 +13,10 @@
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "context7"
-  ]
+  ],
+  "enabledPlugins": {
+    "document-skills@anthropic-agent-skills": true,
+    "oh-my-claudecode@omc": true
+  },
+  "alwaysThinkingEnabled": true
 }

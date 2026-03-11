@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"powershell -Command \\\"$headers = @{Authorization='Bearer pat_WpotrGCzs2p1KNoS3YEluQhfAhsOPIU5uswvjR61gEjz0TA5KQzv0x1bVF6RG2po'; 'Content-Type'='application/json'}; $body = '{\\\\\\\"workflow_i...",
+  "error": "Exit code 1\n����λ�� ��:1 �ַ�: 297\r\n+ ... orkflow/run' -Method POST -Headers  -Body  -TimeoutSec 60;  | Convert ...\r\n+                                                                 ~\r\n������ʹ�ÿչܵ�Ԫ�ء�\r\n    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException\r\n    + FullyQualifiedErrorId : EmptyPipeElement",
+  "timestamp": "2026-03-11T07:56:45.488Z",
+  "retry_count": 1
+}

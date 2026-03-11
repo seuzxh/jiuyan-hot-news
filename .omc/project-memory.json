@@ -68,21 +68,27 @@
   },
   "hotPaths": [
     {
-      "path": "scripts\\main.js",
-      "accessCount": 4,
-      "lastAccessed": 1773224335863,
+      "path": "scripts\\feishu_push.js",
+      "accessCount": 22,
+      "lastAccessed": 1773227724292,
       "type": "file"
     },
     {
-      "path": "scripts\\feishu_push.js",
-      "accessCount": 4,
-      "lastAccessed": 1773224406098,
+      "path": "scripts\\main.js",
+      "accessCount": 5,
+      "lastAccessed": 1773226710585,
       "type": "file"
     },
     {
       "path": "scripts\\coze_api.js",
-      "accessCount": 2,
-      "lastAccessed": 1773216048340,
+      "accessCount": 5,
+      "lastAccessed": 1773227020186,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 3,
+      "lastAccessed": 1773225670058,
       "type": "file"
     },
     {
@@ -92,15 +98,21 @@
       "type": "file"
     },
     {
-      "path": "package.json",
-      "accessCount": 1,
-      "lastAccessed": 1773214168583,
+      "path": "last_push_content.json",
+      "accessCount": 2,
+      "lastAccessed": 1773226986826,
       "type": "file"
     },
     {
-      "path": "README.md",
+      "path": "scripts",
+      "accessCount": 2,
+      "lastAccessed": 1773226997450,
+      "type": "directory"
+    },
+    {
+      "path": "package.json",
       "accessCount": 1,
-      "lastAccessed": 1773214249148,
+      "lastAccessed": 1773214168583,
       "type": "file"
     },
     {

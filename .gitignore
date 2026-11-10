@@ -45,6 +45,18 @@ Thumbs.db
 *.tmp
 *.temp
 
+# 运行时数据（SQLite 库、LLM handoff 任务/结果、日报快照）
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
 # 备份文件
 *.bak
 *.backup
+
+# 云端部署：本地凭据与资源 ID 不入库（secrets.env 需提交，是唯一例外）
+deploy/.zhipuai-key
+deploy/.github-token
+deploy/ids.env

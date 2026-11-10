@@ -1,42 +1,40 @@
 {
-  "name": "jiuyan-hot-news",
-  "version": "1.0.0",
-  "description": "每日热点定时推送 - 通过GitHub Action定时调用Coze工作流并推送至飞书",
-  "main": "scripts/main.js",
+  "name": "jyc-hot-news",
+  "version": "2.0.0",
+  "description": "韭研公社资讯聚合系统：采集 → 预筛 → LLM 打分 → 事件聚簇 → 热度 → 飞书推送/网站",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "start": "node scripts/main.js",
-    "test": "node scripts/main.js --test",
-    "lint": "echo '暂未配置代码检查'",
-    "install-deps": "npm install",
-    "local": "node scripts/local_main.js",
-    "scheduler": "node scripts/scheduler.js",
-    "scheduler-now": "node scripts/scheduler.js --now",
-    "scheduler-status": "node scripts/scheduler.js --status"
+    "crawl": "tsx scripts/crawl.ts",
+    "prefilter": "tsx scripts/prefilter.ts",
+    "score": "tsx scripts/score.ts",
+    "cluster": "tsx scripts/cluster.ts",
+    "write": "tsx scripts/write.ts",
+    "theme": "tsx scripts/theme.ts",
+    "push": "tsx scripts/push.ts",
+    "web": "npm run dev -w @jyc/web",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p apps/web/tsconfig.json"
   },
   "keywords": [
-    "github-actions",
-    "coze",
+    "aggregator",
+    "jiuyangongshe",
     "feishu",
-    "hot-news",
-    "automation"
+    "llm"
   ],
-  "author": "Jiuyan Hot News",
+  "author": "seuzxh",
   "license": "MIT",
-  "dependencies": {
-    "@coze/api": "^1.3.9",
-    "dotenv": "^17.2.3",
-    "node-cron": "^4.2.1",
-    "node-fetch": "^2.7.0"
-  },
-  "engines": {
-    "node": ">=14.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/username/jiuyan-hot-news.git"
-  },
-  "bugs": {
-    "url": "https://github.com/username/jiuyan-hot-news/issues"
-  },
-  "homepage": "https://github.com/username/jiuyan-hot-news#readme"
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
 }

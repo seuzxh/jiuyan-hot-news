@@ -1,83 +1,54 @@
-# 每日热点定时推送
+# 韭研热点 · 韭研公社资讯去噪聚合系统
 
-## 描述
-通过 GitHub Action 功能，每天定时调用 Coze 工作流，并将工作流获取的热点板块内容推送至飞书。
+抓取[韭研公社](https://www.jiuyangongshe.com/)公开帖流，经**四层去噪**（规则预筛 → LLM 双次打分 → 事件聚簇 → 按事件算热度）后，按题材**分类汇总**：飞书每日三推（08:00/12:00/20:00）+ 展示网站。设计借鉴 [AIHOT](https://github.com/KKKKhazix/AIHOT)。
 
-## 功能特性
-
-- ✅ 每日定时推送（北京时间 8:00、12:00、20:00）
-- ✅ 调用 Coze 热点资讯工作流 API
-- ✅ 智能格式化消息内容（飞书卡片格式）
-- ✅ 推送至飞书 webhook 机器人
-- ✅ 支持多种工作流输出格式（Markdown 表格和结构化 JSON）
-
-## 项目结构
-
-```
-jiuyan-hot-news/
-├── .github/workflows/
-│   └── daily-hot-news.yml    # GitHub Action 工作流配置
-├── scripts/
-│   ├── coze_api.js          # Coze API 调用脚本
-│   ├── feishu_push.js       # 飞书推送脚本
-│   └── main.js              # 主执行脚本
-├── package.json             # Node.js 项目配置
-├── .env.example             # 环境变量示例
-└── README.md                # 项目说明文档
-```
-
-## 定时执行时间
-
-| 时段 | UTC 时间 | 北京时间 |
-|------|----------|----------|
-| 早上 | 0:00 | 8:00 |
-| 中午 | 4:00 | 12:00 |
-| 晚上 | 12:00 | 20:00 |
+> 📐 **文档目录 [docs/README.md](docs/README.md)**：架构 · 技术方案 · 资讯分类方案 · 内容检索提炼方案 · 新鲜度方案
 
 ## 快速开始
 
-### 1. 克隆项目
-
-```bash
-git clone https://github.com/username/jiuyan-hot-news.git
-cd jiuyan-hot-news
-```
-
-### 2. 配置环境变量
-
-复制环境变量示例文件：
-```bash
-cp .env.example .env
-```
-
-编辑 `.env` 文件，填入真实配置：
-```env
-COZE_API_TOKEN=your_coze_api_token_here
-COZE_WORKFLOW_ID=7554238030879113267
-FEISHU_WEBHOOK_URL=your_feishu_webhook_url_here
-```
-
-### 3. 本地测试
-
-安装依赖：
 ```bash
 npm install
+cp .env.example .env   # 填入 FEISHU_WEBHOOK_URL
+npm run pipeline       # 全管线（需 .env 中 LLM 阶段配置，见技术方案 §5）
+npm run web            # 展示网站 dev server
 ```
 
-运行推送：
-```bash
-node scripts/main.js
-```
+## 管线阶段
 
-## 环境变量说明
+| 命令 | 作用 | LLM |
+|---|---|---|
+| `npm run crawl` | 抓取板块页（题材/个股/资讯 × 四排序），解析入库 | - |
+| `npm run prefilter` | 去重、拦截、旧文规则，产出候选（≤80/轮） | - |
+| `npm run score` | 双次打分 + 结构化标签（handoff 模式生成任务后 `-- --consume` 回填） | ✓ |
+| `npm run cluster` | 事件聚簇（规则候选 + LLM 复核，宁分勿合） | ✓ |
+| `npm run write` | 事件摘要（答案先行）+ 推荐理由 | ✓ |
+| `npm run theme` | 题材聚合：催化逻辑综述 + Top5 概念股 | ✓ |
+| `npm run push` | 飞书推送题材增量卡片（`--dry` / `--slot=` / `--since-hours=N`） | - |
+| `npm run web` | 展示网站（日期+分类+三列卡片 / 热点榜 / 事件页 / 搜索 / 日报） | - |
+| `npm test` / `npm run typecheck` | 24 项单测 / 类型检查 | - |
 
-| 变量名 | 必需 | 说明 | 默认值 |
-|--------|------|------|--------|
-| `COZE_API_TOKEN` | 是 | Coze API 访问令牌 | - |
-| `COZE_WORKFLOW_ID` | 是 | Coze 工作流 ID | 7554238030879113267 |
-| `FEISHU_WEBHOOK_URL` | 是 | 飞书 webhook 地址 | - |
-| `SEND_ERROR_NOTIFICATION` | 否 | 是否发送错误通知 | false |
+## 调度
+
+- **当前**：ZCode 定时任务每日 08:00/12:00/20:00（LLM 走 agent-handoff，依赖本机在线）
+- **规划**：VPS 后切换 pg-boss + PostgreSQL + Docker（schema 已按兼容写法设计，见技术方案 §12）
+
+## 调什么
+
+| 想调 | 改哪里 |
+|---|---|
+| 信什么算"重要"（评分标准） | `industry/prompts/score.md` |
+| 分级门槛 / 预筛规则 / 热度权重 | `industry/selection.ts` |
+| 展示分类口径 | `packages/core/src/taxonomy.ts` |
+| 抓哪些板块 | `industry/sources.json` |
+
+## 多信源
+
+采集层按适配器接口设计（`packages/sources`），韭研公社为首个实现；新增信源（财联社/雪球…）实现 `SourceAdapter` 即可复用全部下游（打分/聚簇/热度/推送/网站）。
+
+## 历史安全事件
+
+2026-11 前的历史提交曾明文包含 Coze token 与飞书 webhook（均已轮换）。凭据一律走 `.env`（已 gitignore）。
 
 ## 许可证
 
-MIT License
+MIT

@@ -42,25 +42,14 @@ else
   echo "→ 复用 Environment: $ENVIRONMENT_ID"
 fi
 
-# ---- Agent：ids.env 里已有则复用，否则新建（系统提示词 = agent-system.md + 令牌注入） ----
+# ---- Agent：ids.env 里已有则更新提示词，否则新建（body 由 build-json.mjs 生成，纯 ASCII + @file 传输，防编码破坏） ----
+node deploy/build-json.mjs agent
 if [[ -z "${AGENT_ID:-}" ]]; then
   echo "→ 创建 Agent: jyc-hot-news-pipeline (glm-5.3-flash + agent_toolset_20260601)"
-  export GTOKEN
-  BODY=$(node -e '
-    const fs = require("fs");
-    const sys = fs.readFileSync("deploy/agent-system.md", "utf8")
-      + "\n\n## Git 访问令牌（PAT，仅本仓库 contents 读写）\n"
-      + "拼入克隆 URL 使用：https://x-access-token:" + process.env.GTOKEN + "@github.com/seuzxh/jiuyan-hot-news.git\n"
-      + "⚠️ 绝不在任何输出、日志、汇报、代码中回显此令牌。\n";
-    process.stdout.write(JSON.stringify({
-      name: "jyc-hot-news-pipeline",
-      model: "glm-5.3-flash",
-      system: sys,
-      tools: [{ type: "agent_toolset_20260601" }],
-    }));')
-  AGENT_ID=$(api POST /v1/agents -H 'content-type: application/json' -d "$BODY" | jget 'o.id')
+  AGENT_ID=$(api POST /v1/agents -H 'content-type: application/json' --data-binary @deploy/.tmp/agent-body.json | jget 'o.id')
 else
-  echo "→ 复用 Agent: $AGENT_ID（如需更新提示词请先清空 deploy/ids.env 中的 AGENT_ID 再跑本脚本）"
+  echo "→ 更新 Agent: $AGENT_ID 的系统提示词"
+  api POST "/v1/agents/$AGENT_ID" -H 'content-type: application/json' --data-binary @deploy/.tmp/agent-body.json >/dev/null
 fi
 
 printf 'ENVIRONMENT_ID=%s\nAGENT_ID=%s\n' "$ENVIRONMENT_ID" "$AGENT_ID" > deploy/ids.env

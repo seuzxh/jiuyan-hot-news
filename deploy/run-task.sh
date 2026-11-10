@@ -31,8 +31,9 @@ SESSION_ID=$(api POST /v1/sessions -H 'content-type: application/json' \
   | jget 'o.id')
 echo "SESSION_ID=$SESSION_ID"
 
-# 2. 先开 SSE（后台留档），再发任务
-run_dir=$(mktemp -d "${TMPDIR:-/tmp}/jyc-run.XXXXXX")
+# 2. 先开 SSE（后台留档），再发任务（任务体经 build-json.mjs 转 \uXXXX 纯 ASCII，@file 传输防编码破坏）
+mkdir -p deploy/.tmp
+run_dir=$(mktemp -d "deploy/.tmp/run.XXXXXX")
 echo "Run logs: $run_dir"
 SSE_PID=''
 cleanup() { [[ -n "$SSE_PID" ]] && { kill "$SSE_PID" 2>/dev/null || true; wait "$SSE_PID" 2>/dev/null || true; }; }
@@ -50,8 +51,9 @@ until grep -qi '^content-type: *text/event-stream' "$run_dir/stream.headers"; do
   sleep 0.2
 done
 
-BODY=$(TASK="$TASK" node -e 'process.stdout.write(JSON.stringify({events:[{type:"user.message",content:[{type:"text",text:process.env.TASK}]}]}))')
-api POST "/v1/sessions/$SESSION_ID/events" -H 'content-type: application/json' -d "$BODY" >/dev/null
+printf '%s' "$TASK" > deploy/.tmp/task.txt
+node deploy/build-json.mjs events deploy/.tmp/task.txt
+api POST "/v1/sessions/$SESSION_ID/events" -H 'content-type: application/json' --data-binary @deploy/.tmp/events-body.json >/dev/null
 echo "任务已提交，跟踪中（最长 ${WAIT_SECONDS}s）…"
 
 # 3. 轮询历史到 session.status_idle（每 10s；SSE 仅留档）

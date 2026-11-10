@@ -32,6 +32,10 @@ coverage/
 *.swo
 *~
 
+# 编码助手会话/工具状态
+.zcode/
+.omc/
+
 # 操作系统文件
 .DS_Store
 .DS_Store?
@@ -60,3 +64,5 @@ data/
 deploy/.zhipuai-key
 deploy/.github-token
 deploy/ids.env
+deploy/.tmp/
+deploy/.stored-system.txt

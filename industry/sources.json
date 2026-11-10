@@ -1,0 +1,29 @@
+{
+  "sources": [
+    {
+      "id": "jiuyangongshe",
+      "name": "韭研公社",
+      "kind": "web_list",
+      "enabled": true,
+      "config": {
+        "baseUrl": "https://www.jiuyangongshe.com",
+        "boards": [
+          "square_publish",
+          "square_hot",
+          "square_action",
+          "square_30",
+          "study_publish",
+          "study_hot",
+          "study_action",
+          "study_30",
+          "live_publish",
+          "live_hot",
+          "live_action",
+          "live_30"
+        ],
+        "requestIntervalMs": [2000, 5000],
+        "maxRetries": 3
+      }
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 /** 关键词问答（问股）：三路召回 + 四段编排（CLI 与 Web 共用） */
+export type { AskAggregateOutput, AskIntentOutput } from "@jyc/llm";
 export {
   recall,
   normalizeKeyword,
@@ -10,6 +11,7 @@ export {
 export {
   askSingle,
   runAsk,
+  insertAsk,
   consumeAsk,
   reclaimStaleAskRows,
   getAskResultRow,

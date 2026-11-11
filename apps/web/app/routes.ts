@@ -5,5 +5,7 @@ export default [
   route("hot", "routes/hot.tsx"),
   route("story/:id", "routes/story.$id.tsx"),
   route("search", "routes/search.tsx"),
+  route("ask", "routes/ask.tsx"),
+  route("api/ask", "routes/api.ask.ts"),
   route("report", "routes/report.tsx"),
 ] satisfies RouteConfig;

@@ -32,7 +32,7 @@
 
 ```
 items ──► 意图分析(GLM) ──► 实时爬取(防抖) + 三路召回 ──► R1 汇聚 ──► Top帖全文深挖 ──► R2 汇聚 ──► ask_results
-CLI: npm run ask -- --keyword=<个股/概念>   （Web /ask 页 + SSE 为 M2 待做；设计见 docs/关键词问答技术方案.md）
+CLI: npm run ask -- --keyword=<个股/概念>   （Web /ask 页 + /api/ask SSE 已上线：五步进度/watch 续传/handoff 自动续跑）
 ```
 
 三个内容层级：**条目（帖子）→ 事件（同事件多帖合一）→ 题材（同分类多事件的综述单元）**。推送与网站首页均以题材/事件为单位，不再转发单帖。

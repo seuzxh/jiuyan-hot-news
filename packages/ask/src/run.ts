@@ -49,6 +49,8 @@ export interface AskRunOptions {
   candidateLimit?: number;
   /** 跳过实时爬取（库内现存量直接召回） */
   skipCrawl?: boolean;
+  /** 复用已存在的 ask_results 行（Web SSE 先插行拿到 id 再后台跑，断线可 watch 续传） */
+  askId?: number;
 }
 
 export interface AskRunResult {
@@ -92,6 +94,11 @@ type AskRowFields = Partial<{
   error: string;
   finished_at: string;
 }>;
+
+/** 预插一行拿到 askId（Web SSE 先插行再后台跑；CLI 走 runAsk 内部插入） */
+export function insertAsk(db: Db, keyword: string): number {
+  return insertAskRow(db, keyword);
+}
 
 function insertAskRow(db: Db, keyword: string): number {
   const r = db
@@ -452,7 +459,7 @@ export async function runAsk(options: AskRunOptions): Promise<AskRunResult> {
   const { db, root, keyword, onProgress } = options;
   const limit = options.candidateLimit ?? 15;
   reclaimStaleAskRows(db);
-  const askId = insertAskRow(db, keyword);
+  const askId = options.askId ?? insertAskRow(db, keyword);
   const base: AskRunResult = { askId, keyword, status: "failed" };
   const progress = (phase: AskPhase, message: string) => {
     updateAskRow(db, askId, { phase });

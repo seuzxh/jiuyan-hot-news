@@ -11,7 +11,9 @@
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
+    "@jyc/ask": "*",
     "@jyc/core": "*",
+    "@jyc/sources": "*",
     "@react-router/node": "^7.18.5",
     "@react-router/serve": "^7.18.5",
     "isbot": "^5.2.2",

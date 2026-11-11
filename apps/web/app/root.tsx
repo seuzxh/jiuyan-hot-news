@@ -14,6 +14,7 @@ const NAV = [
   { to: "/", label: "精选" },
   { to: "/hot", label: "热点榜" },
   { to: "/search", label: "搜索" },
+  { to: "/ask", label: "问股" },
   { to: "/report", label: "日报" },
 ];
 

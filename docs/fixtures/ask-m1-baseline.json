@@ -1,0 +1,33 @@
+{
+  "_meta": {
+    "purpose": "关键词问答 M1 验收回归基准：两样本完整扩展词表与实测命中数。M1 复跑同一库/窗口时，逐词命中数与并集应与本文件一致（SQL LIKE 口径）。",
+    "window": { "start": "2026-11-10T03:51:53.000Z", "end": "2026-11-11T03:51:53.000Z", "rule": "(anchor-24h, anchor] 左开右闭，anchor=MAX(published_at) 不筛 status" },
+    "db": "data/jycgs.db（WAL，anchor 时点快照）",
+    "verifiedBy": "2026-11-11 两轮独立复核：①勘察工作流 ②方案执笔 node:sqlite 只读复跑（并集/rejected 分布为执笔复核值）"
+  },
+  "samples": [
+    {
+      "keyword": "福莱新材",
+      "kind": "个股",
+      "expandedKeywords": ["福莱新材", "福莱", "605488", "数采手套", "电子皮肤", "触觉传感器", "触觉手套", "柔性触觉", "灵巧手"],
+      "perWordCounts": { "福莱新材": 27, "福莱": 28, "605488": 1, "数采手套": 1, "电子皮肤": 4, "触觉传感器": 2, "触觉手套": 0, "柔性触觉": 1, "灵巧手": 7 },
+      "unionCount": 31,
+      "unionStatusBreakdown": { "rejected": 27, "selected": 3, "new": 1 },
+      "notes": "工作流材料原文称『31 条中 28 条 rejected』，SQL 复核为 rejected 27 + selected 3 + new 1（28 疑为 rejected+new 口径或笔误），回归以本文件 breakdown 为准；路②股票标签精确匹配 21 ⊆ 路①文本 31；撞名股福莱特 24h 三字段 0 命中",
+      "candidateCount": 12,
+      "conclusion": "福莱新材（605488）5天3板，已成触觉/电子皮肤主线定价锚。驱动：蚂蚁灵波开源触觉模型（成功率+14~26pct）+苹果HALO落地，社区按数采手套框架测得T链50亿/O链100亿空间。高位轮动快，忌追涨，跟踪11日特斯拉CoRL。"
+    },
+    {
+      "keyword": "算力",
+      "kind": "概念题材",
+      "expandedKeywords": ["算力", "英伟达", "光模块", "CPO", "数据中心", "液冷", "光通信", "服务器", "Token", "存储", "GPU", "昇腾"],
+      "perWordCounts": { "算力": 22, "英伟达": 18, "光模块": 13, "数据中心": 11, "存储": 11, "光通信": 9, "液冷": 7, "服务器": 7, "CPO": 6, "Token": 6, "GPU": 2, "昇腾": 2 },
+      "unionCount": 73,
+      "unionCountCaseSensitive": 72,
+      "unionStatusBreakdown": { "rejected": 59 },
+      "notes": "73 为 SQL LIKE（ASCII 大小写不敏感）口径，程序内大小写敏感复算 72（差的词条为小写 token，内容仍相关）；执笔复核 rejected=59；三路并集 78 = LIKE 72 + 仅股票标签 4（全为盘前简报噪声）+ 仅事件路 2",
+      "candidateCount": 12,
+      "conclusion": "24h最强催化：微软联合美国巨头游说放弃对华光模块限制，缓解预期升温，利好中际旭创、新易盛、天孚。中国厂商占全球光收发器约2/3、美国短期难替代，行情向上游小市值扩散；华为存储试商用添国产线催化。注意隔夜英伟达大跌扰动。"
+    }
+  ]
+}

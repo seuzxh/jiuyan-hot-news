@@ -2,7 +2,7 @@
 
 抓取[韭研公社](https://www.jiuyangongshe.com/)公开帖流，经**四层去噪**（规则预筛 → LLM 双次打分 → 事件聚簇 → 按事件算热度）后，按题材**分类汇总**：飞书每日三推（08:00/12:00/20:00）+ 展示网站。设计借鉴 [AIHOT](https://github.com/KKKKhazix/AIHOT)。
 
-> 📐 **文档目录 [docs/README.md](docs/README.md)**：架构 · 技术方案 · 资讯分类方案 · 内容检索提炼方案 · 新鲜度方案
+> 📐 **文档目录 [docs/README.md](docs/README.md)**：架构 · 技术方案 · 资讯分类方案 · 内容检索提炼方案 · 新鲜度方案 · 关键词问答（问股）
 
 ## 快速开始
 
@@ -25,7 +25,18 @@ npm run web            # 展示网站 dev server
 | `npm run theme` | 题材聚合：催化逻辑综述 + Top5 概念股 | ✓ |
 | `npm run push` | 飞书推送题材增量卡片（`--dry` / `--slot=` / `--since-hours=N`） | - |
 | `npm run web` | 展示网站（日期+分类+三列卡片 / 热点榜 / 事件页 / 搜索 / 日报） | - |
-| `npm test` / `npm run typecheck` | 24 项单测 / 类型检查 | - |
+| `npm test` / `npm run typecheck` | 45 项单测 / 类型检查 | - |
+
+## 按需问股（关键词问答）
+
+与定时推送互补的**用户主动查询**支线（M1 后端已上线，Web `/ask` 页为 M2 规划）：输入个股/概念关键词 → 意图分析 → 实时爬取（15min 防抖）+ 三路召回 → 关联过滤与汇聚（R1 摘要级 → Top 帖全文深挖 → R2 全文级）→ 结论卡（含证据链与 A/B 关联分类）。
+
+```bash
+npm run ask -- --keyword=福莱新材          # 全链路（24h 滚动窗口，零命中自动扩窗 48/72h）
+npm run ask -- --show=<id>                 # 重放某次查询结果
+```
+
+设计见 [docs/关键词问答技术方案.md](docs/关键词问答技术方案.md)。
 
 ## 调度
 
@@ -37,6 +48,8 @@ npm run web            # 展示网站 dev server
 | 想调 | 改哪里 |
 |---|---|
 | 信什么算"重要"（评分标准） | `industry/prompts/score.md` |
+| 问股的意图扩展 / 关联判定 | `industry/prompts/ask-intent.md` / `ask-aggregate.md` |
+| 问股召回与排序 | `packages/ask/src/recall.ts` |
 | 分级门槛 / 预筛规则 / 热度权重 | `industry/selection.ts` |
 | 展示分类口径 | `packages/core/src/taxonomy.ts` |
 | 抓哪些板块 | `industry/sources.json` |

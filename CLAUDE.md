@@ -7,6 +7,9 @@
 ```
 采集(crawl) → 预筛(prefilter) → 打分(score) → 聚簇(cluster)
   → 写作(write) → 题材(theme) → 推送(push) / 网站(apps/web)
+
+按需支线：ask（关键词问股，M1 已上线）—— items → 意图分析 → 实时爬取+三路召回
+  → R1 汇聚 → Top帖全文 → R2 汇聚 → ask_results（详见 docs/关键词问答技术方案.md）
 ```
 
 三级内容层级：**条目（帖子）→ 事件（同事件多帖合一）→ 题材（同分类多事件：催化逻辑综述 + Top5 概念股）**。推送卡片题材优先。
@@ -21,17 +24,19 @@
 npm run crawl / prefilter / score / cluster / write / theme / push   # 各阶段（条目→事件→题材→推送）
 npm run score -- --consume                                    # 回填 handoff（cluster/write/theme 同）
 npm run push -- --dry | --slot=morning|noon|evening | --since-hours=N
+npm run ask -- --keyword=福莱新材        # 关键词问股（--no-crawl / --consume / --show=<id> / --json）
 npm run web        # 网站 dev server
-npm test           # 单测（28 项）
+npm test           # 单测（45 项）
 npm run typecheck  # 根 + web 双 tsconfig
 ```
 
-dev 工具：`scripts/dev/inspect-fixture.ts`（站点改版探 DOM）、`reset-events.ts`（清事件重跑聚簇）、`test-webhook.ts`（UTF-8 连接测试，**勿用 shell curl 发中文会 GBK 乱码**）。
+dev 工具：`scripts/dev/inspect-fixture.ts`（站点改版探 DOM）、`reset-events.ts`（清事件重跑聚簇）、`test-webhook.ts`（UTF-8 连接测试，**勿用 shell curl 发中文会 GBK 乱码**）、`ask-m1-regression.ts`（问股召回基准回归）。
 
 ## 运维要点（agent 定时任务须知）
 
 - **ZCode 定时任务** `automation-43054d47-936c-48d3-99d5-cb4abc16ce6c` 每日 08:00/12:00/20:00 触发全流程；依赖本机开机
 - **handoff 铁律**：结果文件 outputs 的 id/groupId/eventId 与 batch 必须**原样复制**任务文件（历史两次笔误均被校验拦截）；任务/结果同名配对
+- **ask-aggregate handoff 任务**（问股链路产生，`data/llm-tasks/ask-aggregate-*.json`）：outputs 是**单元素数组**（一个结果对象，非逐条），id 用输入候选的 `id` 字段；batch 后缀 `_r1`/`_r2` 标轮次——R1 回填后由 `npm run ask -- --consume` 自动抓全文并可能派生 `_r2` 任务；任务内 prompt/agentInstructions 自描述，照做即可
 - **打分中断后**：已生成的 cluster 任务基于不完整 selected 集合 → 删任务重跑 cluster
 - **推送失败（code 19001）**：webhook 失效，不记 pushes 不丢数据；换 webhook 后 `push -- --since-hours=N` 补发
 - **聚簇复核口径**：同一具体事件或同一催化主线才 true（如同标的同进展线）；拿不准一律 false；**组内含已归属其他事件的成员时禁 true**（commitGroup 双挂缺陷，技术方案 §11#1）
@@ -43,7 +48,8 @@ dev 工具：`scripts/dev/inspect-fixture.ts`（站点改版探 DOM）、`reset-
 | `FEISHU_WEBHOOK_URL` | 是 | 飞书群机器人 webhook |
 | `FEISHU_SECRET` | 否 | 加签校验 |
 | `GLM_API_KEY` | 否 | 不设走 agent-handoff |
-| `GLM_BASE_URL` / `GLM_MODEL_*` | 否 | 默认智谱 v4 / glm-4-flash |
+| `GLM_BASE_URL` / `GLM_MODEL_*` | 否 | 默认智谱 v4 / glm-4-flash；问股可配 `GLM_MODEL_ASK_INTENT` / `GLM_MODEL_ASK_AGG` |
+| `ASK_CRAWL_DEBOUNCE_MS` / `ASK_STALE_MS` | 否 | 问股爬取防抖（默认 15min）/ running 行超时回收（默认 30min） |
 
 ## 约定
 

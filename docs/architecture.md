@@ -28,6 +28,13 @@
               push（飞书增量卡片）          apps/web（展示网站）
 ```
 
+**按需支线 ask（关键词问股，M1 已上线）**——与上面定时批处理互补的用户主动查询：
+
+```
+items ──► 意图分析(GLM) ──► 实时爬取(防抖) + 三路召回 ──► R1 汇聚 ──► Top帖全文深挖 ──► R2 汇聚 ──► ask_results
+CLI: npm run ask -- --keyword=<个股/概念>   （Web /ask 页 + SSE 为 M2 待做；设计见 docs/关键词问答技术方案.md）
+```
+
 三个内容层级：**条目（帖子）→ 事件（同事件多帖合一）→ 题材（同分类多事件的综述单元）**。推送与网站首页均以题材/事件为单位，不再转发单帖。
 
 ## 3. Monorepo 结构
@@ -35,11 +42,12 @@
 ```
 apps/web            # 展示网站：React Router v7 SSR + Tailwind v4
 packages/core       # 领域类型、SQLite 存储层、预筛/热度/题材聚合逻辑、taxonomy 分类
-packages/sources    # 信源适配器接口（SourceAdapter）+ jiuyangongshe 实现
+packages/sources    # 信源适配器接口（SourceAdapter）+ jiuyangongshe 实现（crawlAll 共享爬取 / fetchDetail 全文）
+packages/ask        # 关键词问股：三路召回（recall）+ 四段编排（run），CLI 与 Web 共用
 packages/llm        # GLM 客户端、handoff 协议（任务/结果文件）、schema 校验
-industry/           # know-how：sources.json / selection.ts / prompts/*.md（score·cluster·write·theme）
-database/migrations # SQL 迁移（0001_init、0002_themes）
-scripts/            # 各阶段 CLI + dev 工具（inspect-fixture / reset-events / test-webhook）
+industry/           # know-how：sources.json / selection.ts / prompts/*.md（score·cluster·write·theme·ask-intent·ask-aggregate）
+database/migrations # SQL 迁移（0001_init、0002_themes、0003_ask）
+scripts/            # 各阶段 CLI（含 ask.ts）+ dev 工具（inspect-fixture / reset-events / test-webhook / ask-m1-regression）
 data/               # 运行时产物（gitignore）：jycgs.db、llm-tasks/、llm-results/
 docs/               # 本文档目录
 ```
@@ -54,7 +62,7 @@ docs/               # 本文档目录
 | LLM | 智谱 OpenAI 兼容接口 / agent-handoff | 每阶段可独立配模型 |
 | 存储 | SQLite（WAL）→ 规划 Postgres | 迁移文件即 schema 文档 |
 | 网站 | React Router v7 SSR + Tailwind v4 | 直读同一 SQLite |
-| 测试 | vitest（28 项） | 解析/预筛/分类/题材全覆盖 |
+| 测试 | vitest（45 项） | 解析/预筛/分类/题材/问股召回/详情页全覆盖 |
 | 调度 | ZCode 定时任务 → 规划 pg-boss | CLI 与调度器解耦 |
 
 ## 5. 调度与部署形态

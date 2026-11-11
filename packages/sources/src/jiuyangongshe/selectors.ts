@@ -33,6 +33,18 @@ export const ICON_TO_METRIC = {
   fabulous: "like",
 } as const;
 
+/**
+ * 详情页（/a/{id}）正文提取路径：Nuxt2 CSR，正文不在 DOM 里，
+ * 藏在 window.__NUXT__ IIFE 载荷的 data[0].data.content（HTML 字符串）。
+ * 站点改版时先跑 scripts/dev/inspect-fixture.ts 探此结构。
+ */
+export const DETAIL_PAYLOAD = {
+  /** 内嵌载荷所在 script 的定位正则 */
+  scriptRe: /<script[^>]*>\s*(window\.__NUXT__=[\s\S]*?)<\/script>/,
+  /** 载荷内正文字段路径：data[0].data.content */
+  contentPath: "data[0].data.content",
+} as const;
+
 /** 徽章 → 作者分级：机构/游资/达人视作准官方级（T1_5），其余普通用户（T2） */
 const T15_BADGE = /(机构|游资|达人|大神|长老|圈主)/;
 

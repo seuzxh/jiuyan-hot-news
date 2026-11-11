@@ -36,7 +36,7 @@ function scanTasks(
   return readdirSync(dirs.tasksDir)
     .filter((f) => f.endsWith(".json"))
     .map((f) => {
-      const m = f.match(/^(score|cluster|write|theme)-(.+)\.json$/);
+      const m = f.match(/^(score|cluster|write|theme|ask-intent|ask-aggregate)-(.+)\.json$/);
       const file = join(dirs.tasksDir, f);
       if (!m) return null;
       const [, stage, batch] = m as unknown as [string, LlmStage, string];

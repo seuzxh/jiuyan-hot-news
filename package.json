@@ -19,6 +19,7 @@
     "write": "tsx scripts/write.ts",
     "theme": "tsx scripts/theme.ts",
     "push": "tsx scripts/push.ts",
+    "ask": "tsx scripts/ask.ts",
     "web": "npm run dev -w @jyc/web",
     "test": "vitest run",
     "typecheck": "tsc --noEmit && tsc --noEmit -p apps/web/tsconfig.json"

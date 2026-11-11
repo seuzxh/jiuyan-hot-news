@@ -8,7 +8,7 @@ import {
   type Db,
   type ItemRow,
 } from "@jyc/core";
-import { defaultHandoffDirs, listOutstandingTasks } from "@jyc/llm";
+import { defaultHandoffDirs, listOutstandingTasks, type LlmStage } from "@jyc/llm";
 
 export function openPipelineDb(): Db {
   return openDb(defaultDbPath(), defaultMigrationsDir());
@@ -46,7 +46,7 @@ export function stocksOf(item: ItemRow): string[] {
 }
 
 /** consume 时提示仍缺结果文件的任务（防止静默无操作） */
-export function warnOutstanding(stage: "score" | "cluster" | "write" | "theme"): void {
+export function warnOutstanding(stage: LlmStage): void {
   const pending = listOutstandingTasks(handoffDirs).filter((t) => t.stage === stage);
   if (pending.length > 0) {
     console.warn(
@@ -56,7 +56,7 @@ export function warnOutstanding(stage: "score" | "cluster" | "write" | "theme"):
 }
 
 /** agent-handoff 任务中写给 agent 的执行说明 */
-export function agentInstructions(outputFile: string, stage: "score" | "cluster" | "write" | "theme"): string {
+export function agentInstructions(outputFile: string, stage: LlmStage): string {
   return [
     `你是 LLM 管线中「${stage}」阶段的执行者。请：`,
     `1. 阅读本文件中的 prompt（提示词全文）与 input 数组`,

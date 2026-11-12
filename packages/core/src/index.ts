@@ -6,6 +6,7 @@ export * from "./config.js";
 export * from "./db.js";
 export * from "./runs.js";
 export * from "./repos/items.js";
+export * from "./repos/itemDetails.js";
 export * from "./repos/events.js";
 export * from "./repos/themes.js";
 export * from "./stages/prefilter.js";

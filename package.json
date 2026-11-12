@@ -15,6 +15,7 @@
     "crawl": "tsx scripts/crawl.ts",
     "prefilter": "tsx scripts/prefilter.ts",
     "score": "tsx scripts/score.ts",
+    "detail": "tsx scripts/detail.ts",
     "cluster": "tsx scripts/cluster.ts",
     "write": "tsx scripts/write.ts",
     "theme": "tsx scripts/theme.ts",

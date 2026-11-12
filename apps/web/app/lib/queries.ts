@@ -85,7 +85,7 @@ function withReps(rows: EventRaw[]): EventView[] {
        WHERE m.event_id IN (${ph})
        ORDER BY m.role = 'representative' DESC, i.score_avg DESC`,
     )
-    .all(...ids) as Array<{
+    .all(...ids) as unknown as Array<{
       event_id: string;
       id: string;
       title: string;
@@ -194,7 +194,7 @@ export function eventMembers(eventId: string): MemberView[] {
     .all(eventId) as unknown as MemberView[];
 }
 
-/** 全文搜索（标题/摘要/事件，LIKE 近似） */
+/** 全文搜索（标题/摘要/事件/帖子全文缓存，LIKE 近似） */
 export function searchAll(q: string, limit = 40): { events: EventView[]; items: Array<{ id: string; title: string; url: string; published_at: string; event_id: string | null }> } {
   const like = `%${q}%`;
   const events = withReps(
@@ -208,11 +208,12 @@ export function searchAll(q: string, limit = 40): { events: EventView[]; items: 
   );
   const items = db()
     .prepare(
-      `SELECT id, title, url, published_at, event_id FROM items
-       WHERE (title LIKE ? OR excerpt LIKE ?) AND status = 'selected'
-       ORDER BY published_at DESC LIMIT ?`,
+      `SELECT i.id, i.title, i.url, i.published_at, i.event_id FROM items i
+       LEFT JOIN item_details d ON d.item_id = i.id AND d.fetch_error IS NULL
+       WHERE (i.title LIKE ? OR i.excerpt LIKE ? OR d.content LIKE ?) AND i.status = 'selected'
+       ORDER BY i.published_at DESC LIMIT ?`,
     )
-    .all(like, like, limit) as unknown as Array<{
+    .all(like, like, like, limit) as unknown as Array<{
       id: string;
       title: string;
       url: string;

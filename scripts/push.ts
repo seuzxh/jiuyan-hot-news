@@ -56,6 +56,11 @@ function firstSentence(s: string): string {
   return (m?.[0] ?? s).slice(0, 60);
 }
 
+/** 飞书卡片 markdown 不支持行内代码（反引号），徽章用 <font> 颜色实现 */
+function badge(text: string, color: "blue" | "green" | "red" | "grey" = "grey"): string {
+  return `<font color='${color}'>${text}</font>`;
+}
+
 interface StockBadge {
   name: string;
   score: number;
@@ -68,12 +73,15 @@ function eventLines(events: EventWithRep[], startNum: number): { text: string; u
   for (const e of events) {
     const rep = e.representative;
     n++;
-    const parts = [`**${n}. ${e.title}**\`评分${rep?.score_avg ?? 0}\`\`🔥${Math.round(e.heat)}\``];
+    const parts = [
+      `**${n}. ${e.title}** ${badge(`评分${rep?.score_avg ?? 0}`, "blue")} ${badge(`🔥${Math.round(e.heat)}`, "red")}`,
+    ];
     if (e.summary) parts.push(firstSentence(e.summary));
     const stocks = (JSON.parse(e.stocks_json) as string[]).slice(0, 2).join("/");
     if (stocks) parts.push(`🎯${stocks}${e.member_count > 1 ? ` · 另有${e.member_count - 1}帖` : ""}`);
     if (rep) parts.push(`🔗 [原帖](${rep.url})`);
-    lines.push(parts.join("  \n"));
+    // 飞书 markdown 只认单换行 \n，不支持 "  \n" 硬换行
+    lines.push(parts.join("\n"));
   }
   return { text: lines.join("\n"), used: n - startNum };
 }
@@ -103,7 +111,7 @@ function buildThemeCard(themes: ThemeRow[], events: EventWithRep[]): Record<stri
     if (i > 0) elements.push({ tag: "hr" });
     const topStocks = (JSON.parse(sec.theme.top_stocks_json) as StockBadge[]).map((s) => s.name);
     const head = [
-      `**${sec.theme.emoji} ${sec.theme.category_label}**　\`${sec.theme.event_count}事件\` \`🔥${Math.round(sec.theme.heat_total)}\``,
+      `**${sec.theme.emoji} ${sec.theme.category_label}** ${badge(`${sec.theme.event_count}事件`, "grey")} ${badge(`🔥${Math.round(sec.theme.heat_total)}`, "red")}`,
     ];
     if (sec.theme.logic) head.push(sec.theme.logic);
     if (topStocks.length > 0) head.push(`🎯 **Top**: ${topStocks.join(" · ")}`);
@@ -159,12 +167,14 @@ function buildEventsCard(events: EventWithRep[]): Record<string, unknown> {
     for (const { event: e } of g.events) {
       n++;
       const rep = e.representative;
-      const parts = [`**${n}. ${e.title}**\`评分${rep?.score_avg ?? 0}\`\`🔥${Math.round(e.heat)}\``];
+      const parts = [
+        `**${n}. ${e.title}** ${badge(`评分${rep?.score_avg ?? 0}`, "blue")} ${badge(`🔥${Math.round(e.heat)}`, "red")}`,
+      ];
       if (e.summary) parts.push(firstSentence(e.summary));
       const stocks = (JSON.parse(e.stocks_json) as string[]).slice(0, 2).join("/");
       if (stocks) parts.push(`🎯${stocks}`);
       if (rep) parts.push(`🔗 [原帖](${rep.url})`);
-      lines.push(parts.join("  \n"));
+      lines.push(parts.join("\n"));
     }
     elements.push({ tag: "markdown", content: lines.join("\n") });
   });

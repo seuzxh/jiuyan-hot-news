@@ -2,7 +2,7 @@
  * 写作阶段：为每个事件生成"答案先行"摘要 + 推荐理由 + 事件标题。
  * API 模式直调 GLM；handoff 模式生成 write-*.json 任务，`npm run write -- --consume` 回填。
  */
-import { getEventsNeedingSummary, getEventsWithMembers, updateEventContent, withRun } from "@jyc/core";
+import { getDetailMap, getEventsNeedingSummary, getEventsWithMembers, updateEventContent, withRun } from "@jyc/core";
 import {
   buildPrompt,
   chat,
@@ -23,20 +23,22 @@ import { agentInstructions, chunk, hasGlmKey, handoffDirs, openPipelineDb, stock
 const db = openPipelineDb();
 const consume = new Set(process.argv.slice(2)).has("--consume");
 
-function toInput(e: ReturnType<typeof getEventsWithMembers>[number]): WriteEventInput {
+function toInput(e: ReturnType<typeof getEventsWithMembers>[number], details: Map<string, string>): WriteEventInput {
   const rep = e.representative;
+  const fullText = rep ? details.get(rep.id) : undefined;
   return {
     eventId: e.id,
     representative: {
       title: rep?.title ?? e.title,
-      excerpt: (rep?.excerpt ?? "").slice(0, 300),
+      // 优先用详情页全文（detail 阶段缓存），无缓存回退列表页摘要
+      excerpt: fullText ? fullText.slice(0, 1200) : (rep?.excerpt ?? "").slice(0, 300),
       authorName: rep?.author_name ?? "",
       stocks: rep ? stocksOf(rep).slice(0, 5) : [],
     },
     members: e.members
       .filter((m) => m.id !== rep?.id)
       .slice(0, 5)
-      .map((m) => ({ title: m.title.slice(0, 60), excerpt: m.excerpt.slice(0, 120) })),
+      .map((m) => ({ title: m.title.slice(0, 60), excerpt: (details.get(m.id) ?? m.excerpt).slice(0, 160) })),
   };
 }
 
@@ -72,7 +74,9 @@ if (consume) {
     const events = getEventsNeedingSummary(db, 100);
     if (events.length === 0) return { events: 0, tasks: 0, written: 0 };
     const withMembers = getEventsWithMembers(db, events.map((e) => e.id));
-    const inputs = withMembers.map(toInput);
+    const memberIds = withMembers.flatMap((e) => e.members.map((m) => m.id));
+    const details = getDetailMap(db, memberIds);
+    const inputs = withMembers.map((e) => toInput(e, details));
     const promptMd = loadPrompt("write");
 
     if (hasGlmKey()) {

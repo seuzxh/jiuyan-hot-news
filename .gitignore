@@ -56,6 +56,10 @@ data/
 *.db-wal
 *.db-shm
 
+# 构建产物
+apps/web/build/
+
+
 # 备份文件
 *.bak
 *.backup

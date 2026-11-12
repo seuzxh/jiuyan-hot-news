@@ -9,6 +9,7 @@ export * from "./repos/items.js";
 export * from "./repos/itemDetails.js";
 export * from "./repos/events.js";
 export * from "./repos/themes.js";
+export * from "./repos/queries.js";
 export * from "./stages/prefilter.js";
 export * from "./stages/themes.js";
 export * from "./taxonomy.js";

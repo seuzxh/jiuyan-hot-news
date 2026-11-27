@@ -31,14 +31,14 @@ export function EventCard({ event, rank }: { event: EventView; rank?: number }) 
   const isNew = Date.now() - Date.parse(event.created_at) < 12 * 3600_000;
   const rising = event.prev_heat > 0 && event.heat > event.prev_heat * 1.3;
   return (
-    <article className="group flex flex-col rounded-xl border border-zinc-200 bg-white p-3.5 transition-all hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700">
+    <article className="group flex flex-col rounded-xl border border-zinc-200/80 bg-white p-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700">
       <div className="flex items-center gap-1.5 text-[11px] leading-none text-zinc-400">
         {rank !== undefined && <span className="font-mono font-bold text-zinc-300 dark:text-zinc-600">#{rank}</span>}
         <span>{event.first_item_at ? bjTime(event.first_item_at) : ""}</span>
         {event.rep_score !== null && (
           <span className={`rounded px-1 py-0.5 font-medium ${scoreColor(event.rep_score)}`}>{event.rep_score}</span>
         )}
-        <span className="rounded bg-orange-50 px-1 py-0.5 font-medium text-orange-600 dark:bg-orange-950 dark:text-orange-300">
+        <span className="rounded bg-gradient-to-r from-orange-50 to-rose-50 px-1 py-0.5 font-bold text-rose-600 dark:from-orange-950 dark:to-rose-950 dark:text-rose-300">
           🔥{Math.round(event.heat)}
         </span>
         {isNew && <span className="rounded bg-blue-50 px-1 py-0.5 font-medium text-blue-600 dark:bg-blue-950 dark:text-blue-300">新</span>}
@@ -48,8 +48,10 @@ export function EventCard({ event, rank }: { event: EventView; rank?: number }) 
         {event.member_count > 1 && <span className="ml-auto whitespace-nowrap">{event.member_count}帖</span>}
       </div>
 
-      <Link to={`/story/${event.id}`} className="mt-1.5">
-        <h2 className="line-clamp-2 text-sm font-semibold leading-snug group-hover:underline">{event.title}</h2>
+      <Link to={`/story/${event.id}`} className="mt-2">
+        <h2 className="line-clamp-2 text-[15px] font-semibold leading-snug group-hover:text-sky-700 dark:group-hover:text-sky-300">
+          {event.title}
+        </h2>
       </Link>
 
       {event.summary && (
@@ -57,8 +59,11 @@ export function EventCard({ event, rank }: { event: EventView; rank?: number }) 
       )}
 
       <div className="mt-auto flex flex-wrap items-center gap-1 pt-2.5 text-[11px]">
-        {event.stocks.slice(0, 3).map((s) => (
-          <span key={s} className="rounded bg-sky-50 px-1 py-0.5 font-medium text-sky-700 dark:bg-sky-950 dark:text-sky-300">
+        {event.stocks.slice(0, 4).map((s) => (
+          <span
+            key={s}
+            className="rounded-md border border-sky-100 bg-sky-50 px-1.5 py-0.5 font-medium text-sky-700 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-300"
+          >
             {s}
           </span>
         ))}

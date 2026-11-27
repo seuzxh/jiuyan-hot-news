@@ -70,3 +70,6 @@ deploy/.github-token
 deploy/ids.env
 deploy/.tmp/
 deploy/.stored-system.txt
+.zcode-site/
+.zcode-site.json
+

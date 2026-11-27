@@ -13,7 +13,7 @@ export default function Hot() {
   const { events } = useLoaderData<typeof loader>();
   return (
     <div className="space-y-3">
-      <p className="text-xs text-zinc-400">按事件热度排序（48 小时窗口 · 每帖只计一次 · 24h 衰减）</p>
+      <p className="text-xs text-zinc-400">近 24 小时内还在讨论的事件，按热度排序</p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {events.map((e, i) => (
           <EventCard key={e.id} event={e} rank={i + 1} />

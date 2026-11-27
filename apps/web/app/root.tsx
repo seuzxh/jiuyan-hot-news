@@ -16,7 +16,8 @@ const NAV = [
   { to: "/search", label: "搜索" },
   { to: "/ask", label: "问股" },
   { to: "/report", label: "日报" },
-];
+  // VITE_PUBLIC_SITE=1 构建公网展示站时隐藏问股入口（对应路由已在 routes.ts 剔除）
+].filter((item) => import.meta.env.VITE_PUBLIC_SITE !== "1" || item.to !== "/ask");
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [dark, setDark] = useState(false);
@@ -49,11 +50,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         />
       </head>
       <body className="min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100 antialiased">
-        <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/80">
-          <div className="mx-auto flex max-w-3xl items-center gap-1 px-4 py-2.5">
-            <Link to="/" className="mr-2 flex items-center gap-1.5 font-bold">
-              <span className="text-lg">📈</span>
-              <span>韭研热点</span>
+        <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/80">
+          <div className="mx-auto flex max-w-6xl items-center gap-1 px-4 py-2.5">
+            <Link to="/" className="mr-2 flex items-center gap-2 font-bold">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-rose-500 to-orange-500 text-sm text-white shadow-sm">📈</span>
+              <span className="hidden sm:inline">韭研热点</span>
             </Link>
             <nav className="flex flex-1 gap-1">
               {NAV.map((n) => (
@@ -81,7 +82,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         </header>
-        <main className="mx-auto max-w-3xl px-4 py-6 pb-16">{children}</main>
+        <main className="mx-auto max-w-6xl px-4 py-6 pb-16">{children}</main>
         <footer className="border-t border-zinc-200 py-6 text-center text-xs text-zinc-400 dark:border-zinc-800">
           数据来源：韭研公社 · 评分/摘要由 JYC 管线生成 · 不构成投资建议
         </footer>

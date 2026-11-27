@@ -174,6 +174,7 @@ function toUpsert(p: ConceptPlan) {
     takeaway: p.takeaway,
     chainJson: JSON.stringify(p.chain),
     stocksJson: JSON.stringify(p.stocks),
+    catalystsJson: JSON.stringify(p.catalysts),
     risk: p.risk,
     eventIdsJson: JSON.stringify(p.eventIds),
     eventCount: p.eventCount,

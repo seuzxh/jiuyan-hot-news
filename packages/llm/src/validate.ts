@@ -101,14 +101,28 @@ export function validateConcepts(raw: unknown, expectedEventIds: Set<string>): C
       .filter((s) => isObj(s) && str((s as Record<string, unknown>).name))
       .map((s) => {
         const o = s as Record<string, unknown>;
-        return { name: str(o.name)!, role: str(o.role) ?? "" };
+        return { name: str(o.name)!, role: str(o.role) ?? "", basis: str(o.basis) ?? "", added: o.added === true };
       });
     if (stocks.length === 0) throw new Error(`第 ${i} 项（${title}）缺少 stocks`);
+    // 催化明细是详情页的补充信息：出处帖对不上只去掉链接，不让整张卡失败（长度超限由 planConcepts 裁剪）
+    const catalysts = (Array.isArray(entry.catalysts) ? entry.catalysts : [])
+      .filter((c) => isObj(c) && str((c as Record<string, unknown>).fact))
+      .map((c) => {
+        const o = c as Record<string, unknown>;
+        const eventId = str(o.eventId) ?? "";
+        return {
+          when: str(o.when) ?? "",
+          fact: str(o.fact)!,
+          impact: str(o.impact) ?? "",
+          upcoming: o.upcoming === true,
+          eventId: expectedEventIds.has(eventId) ? eventId : "",
+        };
+      });
     const eventIds = [...new Set(strArr(entry.eventIds) ?? [])];
     const bad = eventIds.filter((id) => !expectedEventIds.has(id));
     if (bad.length > 0) throw new Error(`第 ${i} 项（${title}）eventIds 非法: ${bad.join(", ")}`);
     if (eventIds.length === 0) throw new Error(`第 ${i} 项（${title}）缺少来源 eventIds`);
-    return { title, category: str(entry.category) ?? "", takeaway, chain, stocks, risk: str(entry.risk) ?? "", eventIds };
+    return { title, category: str(entry.category) ?? "", takeaway, chain, stocks, catalysts, risk: str(entry.risk) ?? "", eventIds };
   });
 }
 

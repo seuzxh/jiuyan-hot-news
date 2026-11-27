@@ -90,19 +90,38 @@ export interface ConceptTaskInput {
   }>;
 }
 
+/** 催化明细的一条（逻辑线详情页逐条展示）：除 fact 外都可缺省 */
+export interface ConceptCatalystOutput {
+  /** 发生/预期的时间，取自帖子 */
+  when?: string;
+  /** 提炼后的事实本身（含关键数字） */
+  fact: string;
+  /** 这条事实对逻辑链意味着什么 */
+  impact?: string;
+  /** 尚未发生的催化时点 */
+  upcoming?: boolean;
+  /** 出处帖子 id */
+  eventId?: string;
+}
+
 export interface ConceptStockOutput {
   name: string;
   /** 该标的在逻辑链中的环节/角色 */
   role: string;
+  /** 入选依据：帖子给出的具体事实（订单/认证/产能/份额等） */
+  basis?: string;
+  /** 帖子未点名、由 LLM 补充的公认龙头 */
+  added?: boolean;
 }
 
-/** 单个概念逻辑卡：结论 + 因果链 + 标的角色 + 风险 + 来源帖子 */
+/** 单个概念逻辑卡：结论 + 因果链 + 催化明细 + 标的角色 + 风险 + 来源帖子 */
 export interface ConceptOutput {
   title: string;
   category: string;
   takeaway: string;
   chain: string[];
   stocks: ConceptStockOutput[];
+  catalysts: ConceptCatalystOutput[];
   risk: string;
   eventIds: string[];
 }

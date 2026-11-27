@@ -87,13 +87,17 @@ function eventLines(events: EventWithRep[], startNum: number): { text: string; u
   return { text: lines.join("\n"), used: n - startNum };
 }
 
-/** 单个概念：标题行 + 结论 + 因果链 + 标的角色 + 风险 */
-function conceptSection(c: ConceptRow, fresh: number): string {
+/** 单个概念：标题行 + 结论 + 因果链 + 标的角色 + 风险；有站点时标题行带详情页链接（催化明细与全部标的在详情页） */
+function conceptSection(c: ConceptRow, fresh: number, detailUrl?: string): string {
   const chain = JSON.parse(c.chain_json) as string[];
-  const stocks = JSON.parse(c.stocks_json) as Array<{ name: string; role: string }>;
+  // 逻辑卡最多列 20 个标的，推送保持原有密度只取前 8 个（按相关度排序）
+  const stocks = (JSON.parse(c.stocks_json) as Array<{ name: string; role: string }>).slice(0, 8);
   // 全部成员帖都是本次新增 → "新"；否则是已有逻辑线吸收了新素材 → "更新"
   const status = fresh >= c.event_count ? badge("新", "green") : badge(`更新 +${fresh}帖`, "blue");
-  const lines = [`**${c.emoji} ${c.title}** ${status} ${badge(`${c.event_count}帖`, "grey")}`, `结论：${c.takeaway}`];
+  const lines = [
+    `**${c.emoji} ${c.title}** ${status} ${badge(`${c.event_count}帖`, "grey")}${detailUrl ? ` [详情 →](${detailUrl})` : ""}`,
+    `结论：${c.takeaway}`,
+  ];
   // 兜底概念没有因果链，环节位置上放的是帖子标题，按并列列出而不是串成箭头
   lines.push(c.title === CONCEPT_OTHER_TITLE ? `涉及：${chain.join(" ｜ ")}` : `逻辑：${chain.join(" → ")}`);
   const stockText = stocks.map((s) => (s.role ? `${s.name}·${s.role}` : s.name)).join(" ｜ ");
@@ -105,16 +109,19 @@ function conceptSection(c: ConceptRow, fresh: number): string {
 /** 概念逻辑卡：只列含新增帖子的概念；未被任何概念覆盖的新帖以"其他动态"兜底，保证不丢信息 */
 function buildConceptCard(concepts: Array<{ row: ConceptRow; fresh: number }>, leftover: EventWithRep[], dateKey: string): Record<string, unknown> {
   const elements: CardElement[] = [];
+  const site = optEnv("JYC_SITE_URL");
   concepts.forEach((c, i) => {
     if (i > 0) elements.push({ tag: "hr" });
-    elements.push({ tag: "markdown", content: conceptSection(c.row, c.fresh) });
+    elements.push({
+      tag: "markdown",
+      content: conceptSection(c.row, c.fresh, site ? `${site.replace(/\/$/, "")}/concept/${encodeURIComponent(c.row.id)}` : undefined),
+    });
   });
   if (leftover.length > 0) {
     if (elements.length > 0) elements.push({ tag: "hr" });
     elements.push({ tag: "markdown", content: ["**📌 未归类的其他动态**", eventLines(leftover, 0).text].join("\n") });
   }
   const freshTotal = concepts.reduce((n, c) => n + c.fresh, 0) + leftover.length;
-  const site = optEnv("JYC_SITE_URL");
   elements.push({
     tag: "note",
     elements: [
@@ -122,7 +129,7 @@ function buildConceptCard(concepts: Array<{ row: ConceptRow; fresh: number }>, l
         tag: "plain_text",
         content:
           `韭研公社 · ${dateKey} ${SLOT_TITLE[slot]} · ${concepts.length} 条逻辑线 / 新增 ${freshTotal} 帖` +
-          (site ? ` · 来源帖与全文：${site}` : ""),
+          (site ? ` · 催化明细与全部标的：${site}` : ""),
       },
     ],
   });

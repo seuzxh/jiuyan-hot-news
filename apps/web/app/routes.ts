@@ -10,4 +10,5 @@ export default [
   route("search", "routes/search.tsx"),
   ...(publicSite ? [] : [route("ask", "routes/ask.tsx"), route("api/ask", "routes/api.ask.ts")]),
   route("report", "routes/report.tsx"),
+  route("architecture", "routes/docs.tsx"),
 ] satisfies RouteConfig;

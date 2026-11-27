@@ -18,6 +18,8 @@ const RUNTIME_DEPS = {
   "@react-router/serve": "^7.18.5",
   // @jyc/core 链路 import "dotenv"（SSR bundle 保留为外部导入）；缺它时云上向上解析不到会启动即退
   dotenv: "^17.2.3",
+  // /docs 页 marked 渲染（SSR bundle 外部导入）
+  marked: "^18.3.0",
   isbot: "^5.2.2",
   react: "^19.3.1",
   "react-dom": "^19.3.1",

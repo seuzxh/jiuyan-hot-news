@@ -16,6 +16,7 @@ const NAV = [
   { to: "/search", label: "搜索" },
   { to: "/ask", label: "问股" },
   { to: "/report", label: "日报" },
+  { to: "/architecture", label: "架构" },
   // VITE_PUBLIC_SITE=1 构建公网展示站时隐藏问股入口（对应路由已在 routes.ts 剔除）
 ].filter((item) => import.meta.env.VITE_PUBLIC_SITE !== "1" || item.to !== "/ask");
 

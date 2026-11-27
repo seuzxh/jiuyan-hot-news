@@ -1,6 +1,6 @@
 # 韭研热点 · 韭研公社资讯去噪聚合系统
 
-抓取[韭研公社](https://www.jiuyangongshe.com/)公开帖流，经**四层去噪**（规则预筛 → LLM 双次打分 → 事件聚簇 → 按事件算热度）后，按题材**分类汇总**：飞书每日三推（08:00/12:00/20:00）+ 展示网站。设计借鉴 [AIHOT](https://github.com/KKKKhazix/AIHOT)。
+抓取[韭研公社](https://www.jiuyangongshe.com/)公开帖流，经**四层去噪**（规则预筛 → LLM 双次打分 → 事件聚簇 → 按事件算热度）后，按**产业逻辑链归成概念**并写出逻辑卡（结论 + 因果链 + 标的角色 + 风险）：飞书每日三推（08:00/12:00/20:00）+ 展示网站。设计借鉴 [AIHOT](https://github.com/KKKKhazix/AIHOT)。
 
 > 📐 **文档目录 [docs/README.md](docs/README.md)**：架构 · 技术方案 · 资讯分类方案 · 内容检索提炼方案 · 新鲜度方案 · 关键词问答（问股）
 
@@ -9,7 +9,7 @@
 ```bash
 npm install
 cp .env.example .env   # 填入 FEISHU_WEBHOOK_URL
-npm run pipeline       # 全管线（需 .env 中 LLM 阶段配置，见技术方案 §5）
+npm run crawl && npm run prefilter && npm run score   # 之后按提示处理 handoff 任务并 --consume，逐阶段推进（见 CLAUDE.md）
 npm run web            # 展示网站 dev server
 ```
 
@@ -22,10 +22,10 @@ npm run web            # 展示网站 dev server
 | `npm run score` | 双次打分 + 结构化标签（handoff 模式生成任务后 `-- --consume` 回填） | ✓ |
 | `npm run cluster` | 事件聚簇（规则候选 + LLM 复核，宁分勿合） | ✓ |
 | `npm run write` | 事件摘要（答案先行）+ 推荐理由 | ✓ |
-| `npm run theme` | 题材聚合：催化逻辑综述 + Top5 概念股 | ✓ |
-| `npm run push` | 飞书推送题材增量卡片（`--dry` / `--slot=` / `--since-hours=N`） | - |
-| `npm run web` | 展示网站（日期+分类+三列卡片 / 热点榜 / 事件页 / 搜索 / 日报） | - |
-| `npm test` / `npm run typecheck` | 45 项单测 / 类型检查 | - |
+| `npm run concept` | 概念逻辑卡：按产业逻辑链归类，写出结论 + 因果链 + 标的角色 + 风险 | ✓ |
+| `npm run push` | 飞书推送概念逻辑卡（`--dry` / `--all` / `--slot=` / `--since-hours=N`） | - |
+| `npm run web` | 展示网站（日期+分类+三列概念卡 / 热点榜 / 事件页 / 搜索 / 日报） | - |
+| `npm test` / `npm run typecheck` | 49 项单测 / 类型检查 | - |
 
 ## 按需问股（关键词问答）
 
@@ -48,6 +48,7 @@ npm run ask -- --show=<id>                 # 重放某次查询结果
 | 想调 | 改哪里 |
 |---|---|
 | 信什么算"重要"（评分标准） | `industry/prompts/score.md` |
+| 概念怎么归、逻辑卡怎么写 | `industry/prompts/concept.md` |
 | 问股的意图扩展 / 关联判定 | `industry/prompts/ask-intent.md` / `ask-aggregate.md` |
 | 问股召回与排序 | `packages/ask/src/recall.ts` |
 | 分级门槛 / 预筛规则 / 热度权重 | `industry/selection.ts` |

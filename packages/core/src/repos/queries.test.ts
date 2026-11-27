@@ -3,7 +3,7 @@ import { DatabaseSync } from "node:sqlite";
 import { beforeEach, describe, expect, it } from "vitest";
 import { dataFreshness, hotEvents, searchAll } from "./queries.js";
 
-const NOW = new Date("2026-11-12T04:00:00.000Z").getTime();
+const NOW = Date.now();
 
 function makeDb() {
   const db = new DatabaseSync(":memory:");

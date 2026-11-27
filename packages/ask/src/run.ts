@@ -186,20 +186,20 @@ async function crawlFresh(db: Db, root: string): Promise<CrawlOutcome> {
 }
 
 // ---------------------------------------------------------------------------
-// 段① 输入装配：themes 背景 + taxonomy 概念词
+// 段① 输入装配：概念逻辑卡背景 + taxonomy 概念词
 // ---------------------------------------------------------------------------
 
 function themesContext(db: Db, anchor: string): Array<{ label: string; logic: string }> {
   if (!anchor) return [];
   const start = new Date(Date.parse(anchor) - 24 * 3600_000).toISOString();
-  // 窗口覆盖的北京日期集合（通常 2 天；themes 以北京日为主键）
+  // 窗口覆盖的北京日期集合（通常 2 天；concepts 以北京日为主键）
   const dates = [...new Set([bjDateKey(start), bjDateKey(anchor)])];
   const ph = dates.map(() => "?").join(", ");
   return db
     .prepare(
-      `SELECT category_label AS label, logic FROM themes
-       WHERE date_key IN (${ph}) AND logic IS NOT NULL AND logic != ''
-       ORDER BY heat_total DESC LIMIT 8`,
+      `SELECT title AS label, takeaway AS logic FROM concepts
+       WHERE date_key IN (${ph})
+       ORDER BY event_count DESC, heat_total DESC LIMIT 8`,
     )
     .all(...dates) as Array<{ label: string; logic: string }>;
 }

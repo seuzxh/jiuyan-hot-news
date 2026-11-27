@@ -4,6 +4,7 @@ import type {
   AskIntentOutput,
   AskKeyPoint,
   ClusterGroupOutput,
+  ConceptOutput,
   ScoreDualOutput,
   ScorePassOutput,
   WriteEventOutput,
@@ -86,14 +87,28 @@ export function validateWrite(raw: unknown, expectedEventIds: Set<string>): Writ
   });
 }
 
-export function validateTheme(raw: unknown, expectedThemeIds: Set<string>): Array<{ themeId: string; logic: string }> {
+/** 校验概念逻辑卡输出（expectedEventIds = 窗口内事件 id 集；长度超限由 planConcepts 裁剪） */
+export function validateConcepts(raw: unknown, expectedEventIds: Set<string>): ConceptOutput[] {
   return toArr(raw).map((entry, i) => {
     if (!isObj(entry)) throw new Error(`第 ${i} 项不是对象`);
-    const themeId = str(entry.themeId);
-    const logic = str(entry.logic);
-    if (!themeId || !expectedThemeIds.has(themeId)) throw new Error(`第 ${i} 项 themeId 非法: ${String(entry.themeId)}`);
-    if (!logic) throw new Error(`第 ${i} 项（${themeId}）缺少 logic`);
-    return { themeId, logic };
+    const title = str(entry.title);
+    const takeaway = str(entry.takeaway);
+    if (!title) throw new Error(`第 ${i} 项缺少 title`);
+    if (!takeaway) throw new Error(`第 ${i} 项（${title}）缺少 takeaway`);
+    const chain = (Array.isArray(entry.chain) ? entry.chain : []).map((s) => str(s)).filter((s): s is string => !!s);
+    if (chain.length < 2) throw new Error(`第 ${i} 项（${title}）chain 至少 2 个环节`);
+    const stocks = (Array.isArray(entry.stocks) ? entry.stocks : [])
+      .filter((s) => isObj(s) && str((s as Record<string, unknown>).name))
+      .map((s) => {
+        const o = s as Record<string, unknown>;
+        return { name: str(o.name)!, role: str(o.role) ?? "" };
+      });
+    if (stocks.length === 0) throw new Error(`第 ${i} 项（${title}）缺少 stocks`);
+    const eventIds = [...new Set(strArr(entry.eventIds) ?? [])];
+    const bad = eventIds.filter((id) => !expectedEventIds.has(id));
+    if (bad.length > 0) throw new Error(`第 ${i} 项（${title}）eventIds 非法: ${bad.join(", ")}`);
+    if (eventIds.length === 0) throw new Error(`第 ${i} 项（${title}）缺少来源 eventIds`);
+    return { title, category: str(entry.category) ?? "", takeaway, chain, stocks, risk: str(entry.risk) ?? "", eventIds };
   });
 }
 

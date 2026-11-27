@@ -1,31 +1,37 @@
 /**
- * 推送阶段：飞书推送"自上次推送以来的新增/更新事件"，按题材组织卡片
- * （题材催化逻辑综述 + Top5 概念股 + 事件列表）。无题材数据时退化为分类事件卡。
- * 用法：npm run push [-- --dry] [-- --slot=morning|noon|evening] [-- --since-hours=N]
+ * 推送阶段：飞书推送"概念逻辑卡"。以概念为单位（结论 + 因果链 + 标的角色 + 风险），
+ * 只推含新增帖子的概念；帖子本身不逐条转发（来源帖在站点上可展开查看）。
+ * 无概念数据时退化为分类事件卡。
+ * 用法：npm run push [-- --dry] [-- --all] [-- --slot=morning|noon|evening] [-- --since-hours=N]
+ *   --dry --all：预览卡片——把窗口内全部帖子当作待推送，不看也不改推送记录
  */
 import { createHmac } from "node:crypto";
 import {
   bjDateKey,
+  CONCEPT_OTHER_TITLE,
   currentSlot,
   defaultDbPath,
   defaultMigrationsDir,
+  getConceptsByDate,
   getEventsForPush,
   getEventsWithMembers,
-  getThemesByDate,
   groupByCategory,
   latestPushTime,
   nowIso,
   openDb,
+  optEnv,
   requireEnv,
   setEventPushed,
   withRun,
+  type ConceptRow,
   type ItemRow,
-  type ThemeRow,
 } from "@jyc/core";
 
 const db = openDb(defaultDbPath(), defaultMigrationsDir());
 
 const dry = process.argv.includes("--dry");
+/** 仅配合 --dry：忽略已推送标记，窗口内全部帖子按待推送处理 */
+const allFlag = process.argv.includes("--all");
 /** --since-hours=N：覆盖默认增量窗口（用于补发） */
 const sinceHoursArg = Number(process.argv.find((a) => a.startsWith("--since-hours="))?.slice(14));
 const slotArg = process.argv.find((a) => a.startsWith("--slot="))?.slice(7);
@@ -37,11 +43,12 @@ const slot = (slotArg === "morning" || slotArg === "noon" || slotArg === "evenin
 const SLOT_TITLE: Record<typeof slot, string> = { morning: "早报", noon: "午报", evening: "晚报" };
 const SLOT_TEMPLATE: Record<typeof slot, string> = { morning: "blue", noon: "turquoise", evening: "orange" };
 
-/** 卡片上限：题材数 × 每题材事件数 */
-const MAX_THEMES = 5;
-const MAX_EVENTS_PER_THEME = 3;
+/** 单张卡片的概念数上限（8 条逻辑线约 7KB，12 条仍在卡片体积安全区内）；兜底"其他动态"里最多列几条未归概念的帖子 */
+const MAX_CONCEPTS = 12;
+const MAX_LEFTOVER_EVENTS = 3;
 
 type EventWithRep = ReturnType<typeof getEventsWithMembers>[number];
+type PendingRows = ReturnType<typeof getEventsForPush>;
 
 // ---------- 飞书消息构造 ----------
 
@@ -61,12 +68,6 @@ function badge(text: string, color: "blue" | "green" | "red" | "grey" = "grey"):
   return `<font color='${color}'>${text}</font>`;
 }
 
-interface StockBadge {
-  name: string;
-  score: number;
-  mentions: number;
-}
-
 function eventLines(events: EventWithRep[], startNum: number): { text: string; used: number } {
   let n = startNum;
   const lines: string[] = [];
@@ -77,8 +78,8 @@ function eventLines(events: EventWithRep[], startNum: number): { text: string; u
       `**${n}. ${e.title}** ${badge(`评分${rep?.score_avg ?? 0}`, "blue")} ${badge(`🔥${Math.round(e.heat)}`, "red")}`,
     ];
     if (e.summary) parts.push(firstSentence(e.summary));
-    const stocks = (JSON.parse(e.stocks_json) as string[]).slice(0, 2).join("/");
-    if (stocks) parts.push(`🎯${stocks}${e.member_count > 1 ? ` · 另有${e.member_count - 1}帖` : ""}`);
+    const stocks = (JSON.parse(e.stocks_json) as string[]).slice(0, 4).join(" · ");
+    if (stocks) parts.push(`🎯 ${stocks}${e.member_count > 1 ? ` · 另有${e.member_count - 1}帖` : ""}`);
     if (rep) parts.push(`🔗 [原帖](${rep.url})`);
     // 飞书 markdown 只认单换行 \n，不支持 "  \n" 硬换行
     lines.push(parts.join("\n"));
@@ -86,47 +87,44 @@ function eventLines(events: EventWithRep[], startNum: number): { text: string; u
   return { text: lines.join("\n"), used: n - startNum };
 }
 
-/** 题材优先卡片：催化逻辑 + Top5 概念股 + 增量事件列表（"其他"恒排最后） */
-function buildThemeCard(themes: ThemeRow[], events: EventWithRep[]): Record<string, unknown> {
-  const eligibleIds = new Set(events.map((e) => e.id));
-  const ordered = [
-    ...themes.filter((t) => t.category_id !== "other").sort((a, b) => b.heat_total - a.heat_total),
-    ...themes.filter((t) => t.category_id === "other"),
-  ];
-  const sections: Array<{ theme: ThemeRow; events: EventWithRep[] }> = [];
-  const covered = new Set<string>();
-  for (const t of ordered) {
-    if (sections.length >= MAX_THEMES) break;
-    const ids = new Set(JSON.parse(t.event_ids_json) as string[]);
-    const mine = events.filter((e) => ids.has(e.id)).sort((a, b) => b.heat - a.heat).slice(0, MAX_EVENTS_PER_THEME);
-    if (mine.length === 0) continue;
-    mine.forEach((e) => covered.add(e.id));
-    sections.push({ theme: t, events: mine });
-  }
-  const leftover = events.filter((e) => !covered.has(e.id)).slice(0, 3);
+/** 单个概念：标题行 + 结论 + 因果链 + 标的角色 + 风险 */
+function conceptSection(c: ConceptRow, fresh: number): string {
+  const chain = JSON.parse(c.chain_json) as string[];
+  const stocks = JSON.parse(c.stocks_json) as Array<{ name: string; role: string }>;
+  // 全部成员帖都是本次新增 → "新"；否则是已有逻辑线吸收了新素材 → "更新"
+  const status = fresh >= c.event_count ? badge("新", "green") : badge(`更新 +${fresh}帖`, "blue");
+  const lines = [`**${c.emoji} ${c.title}** ${status} ${badge(`${c.event_count}帖`, "grey")}`, `结论：${c.takeaway}`];
+  // 兜底概念没有因果链，环节位置上放的是帖子标题，按并列列出而不是串成箭头
+  lines.push(c.title === CONCEPT_OTHER_TITLE ? `涉及：${chain.join(" ｜ ")}` : `逻辑：${chain.join(" → ")}`);
+  const stockText = stocks.map((s) => (s.role ? `${s.name}·${s.role}` : s.name)).join(" ｜ ");
+  if (stockText) lines.push(`🎯 ${stockText}`);
+  if (c.risk) lines.push(`⚠️ ${c.risk}`);
+  return lines.join("\n");
+}
 
+/** 概念逻辑卡：只列含新增帖子的概念；未被任何概念覆盖的新帖以"其他动态"兜底，保证不丢信息 */
+function buildConceptCard(concepts: Array<{ row: ConceptRow; fresh: number }>, leftover: EventWithRep[], dateKey: string): Record<string, unknown> {
   const elements: CardElement[] = [];
-  let n = 0;
-  sections.forEach((sec, i) => {
+  concepts.forEach((c, i) => {
     if (i > 0) elements.push({ tag: "hr" });
-    const topStocks = (JSON.parse(sec.theme.top_stocks_json) as StockBadge[]).map((s) => s.name);
-    const head = [
-      `**${sec.theme.emoji} ${sec.theme.category_label}** ${badge(`${sec.theme.event_count}事件`, "grey")} ${badge(`🔥${Math.round(sec.theme.heat_total)}`, "red")}`,
-    ];
-    if (sec.theme.logic) head.push(sec.theme.logic);
-    if (topStocks.length > 0) head.push(`🎯 **Top**: ${topStocks.join(" · ")}`);
-    const body = eventLines(sec.events, n);
-    n += body.used;
-    elements.push({ tag: "markdown", content: [...head, body.text].join("\n") });
+    elements.push({ tag: "markdown", content: conceptSection(c.row, c.fresh) });
   });
   if (leftover.length > 0) {
     if (elements.length > 0) elements.push({ tag: "hr" });
-    const body = eventLines(leftover, n);
-    elements.push({ tag: "markdown", content: [`**📌 其他动态**`, body.text].join("\n") });
+    elements.push({ tag: "markdown", content: ["**📌 未归类的其他动态**", eventLines(leftover, 0).text].join("\n") });
   }
+  const freshTotal = concepts.reduce((n, c) => n + c.fresh, 0) + leftover.length;
+  const site = optEnv("JYC_SITE_URL");
   elements.push({
     tag: "note",
-    elements: [{ tag: "plain_text", content: `数据来源：韭研公社 · ${bjDateKey(nowIso())} ${SLOT_TITLE[slot]} · 按题材分类汇总` }],
+    elements: [
+      {
+        tag: "plain_text",
+        content:
+          `韭研公社 · ${dateKey} ${SLOT_TITLE[slot]} · ${concepts.length} 条逻辑线 / 新增 ${freshTotal} 帖` +
+          (site ? ` · 来源帖与全文：${site}` : ""),
+      },
+    ],
   });
   return {
     msg_type: "interactive",
@@ -134,14 +132,14 @@ function buildThemeCard(themes: ThemeRow[], events: EventWithRep[]): Record<stri
       config: { wide_screen_mode: true },
       header: {
         template: SLOT_TEMPLATE[slot],
-        title: { tag: "plain_text", content: `📈 韭研热点 · ${SLOT_TITLE[slot]}（${events.length} 事件 / ${sections.length} 题材）` },
+        title: { tag: "plain_text", content: `📈 韭研热点 · ${SLOT_TITLE[slot]} · ${concepts.length} 条逻辑线` },
       },
       elements,
     },
   };
 }
 
-/** 兜底：无题材数据时按事件分类卡 */
+/** 兜底：无概念数据时按事件分类卡 */
 function buildEventsCard(events: EventWithRep[]): Record<string, unknown> {
   const wrapped = events.map((e) => {
     let repIndustry: string | null = null;
@@ -163,20 +161,8 @@ function buildEventsCard(events: EventWithRep[]): Record<string, unknown> {
   let n = 0;
   groups.forEach((g, i) => {
     if (i > 0) elements.push({ tag: "hr" });
-    const lines = [`**${g.category.emoji} ${g.category.label}**`];
-    for (const { event: e } of g.events) {
-      n++;
-      const rep = e.representative;
-      const parts = [
-        `**${n}. ${e.title}** ${badge(`评分${rep?.score_avg ?? 0}`, "blue")} ${badge(`🔥${Math.round(e.heat)}`, "red")}`,
-      ];
-      if (e.summary) parts.push(firstSentence(e.summary));
-      const stocks = (JSON.parse(e.stocks_json) as string[]).slice(0, 2).join("/");
-      if (stocks) parts.push(`🎯${stocks}`);
-      if (rep) parts.push(`🔗 [原帖](${rep.url})`);
-      lines.push(parts.join("\n"));
-    }
-    elements.push({ tag: "markdown", content: lines.join("\n") });
+    elements.push({ tag: "markdown", content: [`**${g.category.emoji} ${g.category.label}**`, eventLines(g.events.map((x) => x.event), n).text].join("\n") });
+    n += g.events.length;
   });
   elements.push({
     tag: "note",
@@ -234,16 +220,38 @@ const stats = await withRun(db, `push-${slot}`, async () => {
   const since = Number.isFinite(sinceHoursArg) && sinceHoursArg > 0
     ? new Date(Date.now() - sinceHoursArg * 3600_000).toISOString()
     : (latestPushTime(db) ?? new Date(Date.now() - 12 * 3600_000).toISOString());
-  const eventRows = getEventsForPush(db, since, 12);
-  if (eventRows.length === 0) return { pushed: 0, since, reason: "no_increment" };
+  const pending = allFlag
+    ? (db
+        .prepare("SELECT * FROM events WHERE last_item_at > ? ORDER BY heat DESC LIMIT 60")
+        .all(since) as unknown as PendingRows)
+    : getEventsForPush(db, since, 60);
+  if (pending.length === 0) return { pushed: 0, since, reason: "no_increment" } as const;
 
-  const events = getEventsWithMembers(db, eventRows.map((e) => e.id));
-  const themeRows = getThemesByDate(db, bjDateKey(nowIso()));
-  const card = themeRows.length > 0 ? buildThemeCard(themeRows, events) : buildEventsCard(events);
+  const dateKey = bjDateKey(nowIso());
+  const pendingIds = new Set(pending.map((e) => e.id));
+  // 含新增帖子的概念（概念已按展示顺序排好，"其他动态"垫底）
+  const matching = getConceptsByDate(db, dateKey)
+    .map((row) => ({ row, fresh: (JSON.parse(row.event_ids_json) as string[]).filter((id) => pendingIds.has(id)).length }))
+    .filter((t) => t.fresh > 0);
+  // 超出卡片上限的概念本次不推（其帖子照常记为已推送，站点上完整展示）
+  const targets = matching.slice(0, MAX_CONCEPTS);
+
+  const events = getEventsWithMembers(db, pending.map((e) => e.id));
+  let card: Record<string, unknown>;
+  let usedConcepts = 0;
+  if (targets.length > 0) {
+    // 已归属到任一概念的帖子都不算"未归类"——包括本次因卡片上限没推出来的概念
+    const covered = new Set(matching.flatMap((t) => JSON.parse(t.row.event_ids_json) as string[]));
+    const leftover = events.filter((e) => !covered.has(e.id)).slice(0, MAX_LEFTOVER_EVENTS);
+    card = buildConceptCard(targets, leftover, dateKey);
+    usedConcepts = targets.length;
+  } else {
+    card = buildEventsCard(events.slice(0, 12));
+  }
 
   if (dry) {
     console.log(JSON.stringify(card, null, 2));
-    return { pushed: 0, since, reason: "dry_run" };
+    return { pushed: 0, since, reason: "dry_run", titles: targets.map((t) => t.row.title) } as const;
   }
 
   try {
@@ -254,22 +262,27 @@ const stats = await withRun(db, `push-${slot}`, async () => {
   }
 
   const ts = nowIso();
-  const eventIds = events.map((e) => e.id);
+  const eventIds = pending.map((e) => e.id);
   db.prepare("INSERT INTO pushes (id, slot, event_ids_json, payload_json, sent_at) VALUES (?, ?, ?, ?, ?)").run(
     `push_${ts}`,
     slot,
     JSON.stringify(eventIds),
-    JSON.stringify({ titles: events.map((e) => e.title), themes: themeRows.map((t) => t.category_label) }),
+    JSON.stringify({ titles: targets.map((t) => t.row.title), concepts: usedConcepts }),
     ts,
   );
   setEventPushed(db, eventIds, ts);
-  return { pushed: events.length, themes: themeRows.length, since, titles: events.map((e) => e.title) };
+  return {
+    pushed: pending.length,
+    concepts: usedConcepts,
+    since,
+    titles: usedConcepts > 0 ? targets.map((t) => `${t.row.title}（+${t.fresh}帖）`) : events.slice(0, 12).map((e) => e.title),
+  };
 });
 
 db.close();
 if (stats.pushed === 0) {
-  console.log(`[push] 无增量事件（since ${stats.since}${(stats as { reason?: string }).reason === "dry_run" ? "，dry-run 未发送" : ""}）`);
+  console.log(`[push] 无增量事件（since ${stats.since}${stats.reason === "dry_run" ? "，dry-run 未发送" : ""}）`);
 } else {
-  console.log(`[push] 已推送 ${stats.pushed} 个事件（${(stats as { themes?: number }).themes ?? 0} 个题材）:`);
-  for (const t of (stats as { titles?: string[] }).titles ?? []) console.log(`  - ${t}`);
+  console.log(`[push] 已推送 ${stats.concepts} 条逻辑线，覆盖 ${stats.pushed} 帖:`);
+  for (const t of stats.titles ?? []) console.log(`  - ${t}`);
 }

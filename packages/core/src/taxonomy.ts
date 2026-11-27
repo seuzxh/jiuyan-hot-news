@@ -65,6 +65,14 @@ export const CATEGORIES: Category[] = [
     industries: ["电力设备", "环保", "化工", "煤炭", "公用事业"],
   },
   {
+    id: "material",
+    label: "材料·涨价链",
+    emoji: "🧱",
+    conceptKeywords: ["涨价", "提价", "缺货", "紧缺", "供需缺口", "乳酸", "PLA", "丙交酯", "氯化亚砜", "钴", "氦气"],
+    drivers: [],
+    industries: ["化工", "材料", "有色"],
+  },
+  {
     id: "sentiment",
     label: "情绪·复盘",
     emoji: "📊",

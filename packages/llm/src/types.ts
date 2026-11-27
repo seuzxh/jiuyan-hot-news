@@ -1,6 +1,6 @@
 /** LLM 阶段的任务/结果契约（API 模式与 agent-handoff 模式共用） */
 
-export type LlmStage = "score" | "cluster" | "write" | "theme" | "ask-intent" | "ask-aggregate";
+export type LlmStage = "score" | "cluster" | "write" | "concept" | "ask-intent" | "ask-aggregate";
 
 // ---------- score ----------
 
@@ -65,17 +65,46 @@ export interface WriteEventOutput {
   reason: string;
 }
 
-// ---------- theme ----------
+// ---------- concept ----------
 
-export interface ThemeTaskInput {
-  themeId: string;
-  label: string;
-  events: Array<{ title: string; summary: string; heat: number; stocks: string[] }>;
+/** 概念阶段输入：单元素数组，承载窗口内全部事件（汇总帖由 LLM 拆题归位，可属于多个概念） */
+export interface ConceptTaskInput {
+  /** 北京日期，逻辑卡归属日 */
+  dateKey: string;
+  events: Array<{
+    id: string;
+    title: string;
+    summary: string;
+    stocks: string[];
+    tags: string[];
+    /** 事件热度（取整） */
+    heat: number;
+    /** 代表帖评分 */
+    score: number | null;
+    /** 最新帖子时间，北京时间 "MM-DD HH:mm" */
+    time: string;
+    /** 代表帖作者层级 */
+    tier: string | null;
+    /** 代表帖正文节选（空白折叠后截断），用于核实标的角色与因果链 */
+    text: string;
+  }>;
 }
 
-export interface ThemeOutput {
-  themeId: string;
-  logic: string;
+export interface ConceptStockOutput {
+  name: string;
+  /** 该标的在逻辑链中的环节/角色 */
+  role: string;
+}
+
+/** 单个概念逻辑卡：结论 + 因果链 + 标的角色 + 风险 + 来源帖子 */
+export interface ConceptOutput {
+  title: string;
+  category: string;
+  takeaway: string;
+  chain: string[];
+  stocks: ConceptStockOutput[];
+  risk: string;
+  eventIds: string[];
 }
 
 // ---------- ask-intent（关键词问股·段①） ----------

@@ -128,6 +128,23 @@ export interface ConceptStockView {
   name: string;
   /** 该标的在逻辑链中的环节/角色 */
   role: string;
+  /** 入选依据：帖子给出的具体事实（订单/认证/产能等）；只提了名字的为空 */
+  basis: string;
+  /** 帖子未点名、由 LLM 补充的公认龙头 */
+  added: boolean;
+}
+
+/** 催化明细：一条具体的事实或催化时点（LLM 从帖子正文提炼，不是原文） */
+export interface ConceptCatalystView {
+  /** 发生/预期的时间（"11.26"、"2027Q1"）；帖子未给日期时为空 */
+  when: string;
+  fact: string;
+  /** 这条事实对逻辑链意味着什么；没有则为空 */
+  impact: string;
+  /** 尚未发生的催化时点 */
+  upcoming: boolean;
+  /** 出处帖 id；对不上时为空串 */
+  eventId: string;
 }
 
 export interface ConceptSource {
@@ -137,10 +154,16 @@ export interface ConceptSource {
   /** 最新帖子时间 */
   lastItemAt: string | null;
   url: string | null;
+  /** 管线自己写的摘要（非原文），详情页来源区展示 */
+  summary: string | null;
+  /** 来源帖关联的标的 */
+  stocks: string[];
 }
 
 export interface ConceptView {
   id: string;
+  /** 归属的北京日期 */
+  dateKey: string;
   rank: number;
   title: string;
   categoryId: string;
@@ -148,8 +171,10 @@ export interface ConceptView {
   emoji: string;
   /** 一句话结论 */
   takeaway: string;
-  /** 因果链环节 */
+  /** 因果链环节（讲"怎么传导"） */
   chain: string[];
+  /** 催化明细（讲"发生了什么、什么时候、数字多少"）；功能上线前整理的日期为空数组 */
+  catalysts: ConceptCatalystView[];
   stocks: ConceptStockView[];
   risk: string;
   eventIds: string[];
@@ -158,64 +183,112 @@ export interface ConceptView {
   sources: ConceptSource[];
 }
 
-/** 某北京日期的概念逻辑卡（按 rank；无数据返回空数组，页面回退到帖子视图） */
-export function conceptsOnDate(date: string): ConceptView[] {
-  const rows = db()
-    .prepare("SELECT * FROM concepts WHERE date_key = ? ORDER BY rank")
-    .all(date) as unknown as Array<{
-    id: string;
-    rank: number;
-    title: string;
-    category_id: string;
-    category_label: string;
-    emoji: string;
-    takeaway: string;
-    chain_json: string;
-    stocks_json: string;
-    risk: string | null;
-    event_ids_json: string;
-    event_count: number;
-    heat_total: number;
-  }>;
+interface ConceptRowRaw {
+  id: string;
+  date_key: string;
+  rank: number;
+  title: string;
+  category_id: string;
+  category_label: string;
+  emoji: string;
+  takeaway: string;
+  chain_json: string;
+  stocks_json: string;
+  /** 迁移 0005 之前的库没有这一列 */
+  catalysts_json?: string;
+  risk: string | null;
+  event_ids_json: string;
+  event_count: number;
+  heat_total: number;
+}
+
+function parseJson<T>(s: string | null | undefined, fallback: T): T {
+  if (!s) return fallback;
+  try {
+    return JSON.parse(s) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+/** 概念行 + 来源帖 → 视图（首页/日报按日期取、详情页按 id 取，共用这一段） */
+function toConceptViews(rows: ConceptRowRaw[]): ConceptView[] {
   if (rows.length === 0) return [];
-  const ids = [...new Set(rows.flatMap((r) => JSON.parse(r.event_ids_json) as string[]))];
+  const ids = [...new Set(rows.flatMap((r) => parseJson<string[]>(r.event_ids_json, [])))];
   const ph = ids.map(() => "?").join(",");
   const evts = db()
     .prepare(
-      `SELECT e.id, e.title, e.heat, e.last_item_at,
+      `SELECT e.id, e.title, e.heat, e.last_item_at, e.summary, e.stocks_json,
         (SELECT i.url FROM event_members m JOIN items i ON i.id = m.item_id
           WHERE m.event_id = e.id ORDER BY m.role = 'representative' DESC, i.score_avg DESC LIMIT 1) AS url
        FROM events e WHERE e.id IN (${ph})`,
     )
-    .all(...ids) as unknown as Array<{ id: string; title: string; heat: number; last_item_at: string | null; url: string | null }>;
+    .all(...ids) as unknown as Array<{
+    id: string;
+    title: string;
+    heat: number;
+    last_item_at: string | null;
+    summary: string | null;
+    stocks_json: string;
+    url: string | null;
+  }>;
   const byId = new Map(evts.map((e) => [e.id, e]));
   return rows.map((r) => {
-    const eventIds = (JSON.parse(r.event_ids_json) as string[]).filter((id) => byId.has(id));
+    const eventIds = parseJson<string[]>(r.event_ids_json, []).filter((id) => byId.has(id));
+    const stocks = parseJson<Array<{ name: string; role: string; basis?: string; added?: boolean }>>(r.stocks_json, []);
     return {
       id: r.id,
+      dateKey: r.date_key,
       rank: r.rank,
       title: r.title,
       categoryId: r.category_id,
       categoryLabel: r.category_label,
       emoji: r.emoji,
       takeaway: r.takeaway,
-      chain: JSON.parse(r.chain_json) as string[],
-      stocks: JSON.parse(r.stocks_json) as ConceptStockView[],
+      chain: parseJson<string[]>(r.chain_json, []),
+      catalysts: parseJson<ConceptCatalystView[]>(r.catalysts_json, []),
+      stocks: stocks.map((s) => ({
+        name: s.name,
+        role: s.role,
+        basis: s.basis ?? "",
+        // 旧数据的"补充"标在 role 里（"补充·龙头"），迁移到独立标记
+        added: s.added ?? /补充/.test(s.role),
+      })),
       risk: r.risk ?? "",
       eventIds,
       eventCount: eventIds.length,
       heatTotal: r.heat_total,
       sources: eventIds.map((id) => {
         const e = byId.get(id)!;
-        return { id: e.id, title: e.title, heat: e.heat, lastItemAt: e.last_item_at, url: e.url };
+        return {
+          id: e.id,
+          title: e.title,
+          heat: e.heat,
+          lastItemAt: e.last_item_at,
+          url: e.url,
+          summary: e.summary,
+          stocks: parseJson<string[]>(e.stocks_json, []),
+        };
       }),
     };
   });
 }
 
+/** 某北京日期的概念逻辑卡（按 rank；无数据返回空数组，页面回退到帖子视图） */
+export function conceptsOnDate(date: string): ConceptView[] {
+  return toConceptViews(db().prepare("SELECT * FROM concepts WHERE date_key = ? ORDER BY rank").all(date) as unknown as ConceptRowRaw[]);
+}
+
+/** 按 id 取单条逻辑卡（详情页）；不存在返回 undefined */
+export function getConcept(id: string): ConceptView | undefined {
+  return toConceptViews(db().prepare("SELECT * FROM concepts WHERE id = ?").all(id) as unknown as ConceptRowRaw[])[0];
+}
+
 // ---------- 日报：题材 × 核心个股 ----------
 
 export interface ReportRow {
+  /** 逻辑卡的 id（自动汇总模式下为空串，不可点进详情） */
+  id: string;
   title: string;
   takeaway: string;
   chain: string[];
@@ -249,6 +322,7 @@ export function dailyReport(date: string): DailyReport {
         label: g.label,
         emoji: g.emoji,
         rows: g.concepts.map((c) => ({
+          id: c.id,
           title: c.title,
           takeaway: c.takeaway,
           chain: c.chain,
@@ -281,14 +355,15 @@ export function dailyReport(date: string): DailyReport {
         10,
       );
       return {
+        id: "",
         title: g.category.label,
         takeaway: "",
         chain: [],
         risk: "",
         // 只有一帖提及时不标计数，避免每只个股后面都挂着"1 帖提及"
-        stocks: stocks.map((s) => ({ name: s.name, role: s.mentions > 1 ? `${s.mentions} 帖提及` : "" })),
+        stocks: stocks.map((s) => ({ name: s.name, role: s.mentions > 1 ? `${s.mentions} 帖提及` : "", basis: "", added: false })),
         eventCount: evts.length,
-        sources: evts.map((e) => ({ id: e.id, title: e.title, heat: e.heat, lastItemAt: e.last_item_at, url: e.rep_url })),
+        sources: evts.map((e) => ({ id: e.id, title: e.title, heat: e.heat, lastItemAt: e.last_item_at, url: e.rep_url, summary: e.summary, stocks: e.stocks })),
       };
     },
   );

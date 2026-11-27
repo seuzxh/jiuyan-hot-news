@@ -22,8 +22,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
   return { dates, date, report, pushes: pushHistory(30) };
 }
 
-/** 日报的一行：左边题材（名称 + 结论），右边核心个股及其角色；有逻辑链的行可展开 */
+/** 日报行里最多露出的标的数，其余进详情页（逻辑卡最多 20 个，表格行放不下） */
+const ROW_STOCKS = 8;
+
+/** 日报的一行：左边题材（名称 + 结论），右边核心个股及其角色；有逻辑链的行可展开，标题可进详情页 */
 function ReportRowItem({ row, expandable }: { row: ReportRow; expandable: boolean }) {
+  const shown = row.stocks.slice(0, ROW_STOCKS);
+  const rest = row.stocks.length - shown.length;
   const head = (
     <div className="grid grid-cols-1 gap-x-6 gap-y-1.5 px-4 py-2.5 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:items-center">
       <div className="min-w-0">
@@ -31,7 +36,18 @@ function ReportRowItem({ row, expandable }: { row: ReportRow; expandable: boolea
           {expandable && (
             <span className="shrink-0 self-center text-[10px] leading-none text-zinc-400 transition-transform group-open:rotate-90">▸</span>
           )}
-          <span className="text-sm font-semibold leading-snug">{row.title}</span>
+          {row.id ? (
+            // 链接在 <summary> 里：拦住冒泡，点标题只跳详情、不触发展开
+            <Link
+              to={`/concept/${encodeURIComponent(row.id)}`}
+              onClick={(e) => e.stopPropagation()}
+              className="text-sm font-semibold leading-snug hover:text-sky-700 hover:underline dark:hover:text-sky-300"
+            >
+              {row.title}
+            </Link>
+          ) : (
+            <span className="text-sm font-semibold leading-snug">{row.title}</span>
+          )}
           <span className="shrink-0 text-[11px] text-zinc-400">{row.eventCount} 帖</span>
         </div>
         {row.takeaway && (
@@ -39,7 +55,7 @@ function ReportRowItem({ row, expandable }: { row: ReportRow; expandable: boolea
         )}
       </div>
       <div className="flex flex-wrap gap-1">
-        {row.stocks.map((s) => (
+        {shown.map((s) => (
           <span
             key={s.name}
             className="rounded-md border border-sky-100 bg-sky-50 px-1.5 py-0.5 text-[11px] leading-4 dark:border-sky-900 dark:bg-sky-950"
@@ -48,6 +64,9 @@ function ReportRowItem({ row, expandable }: { row: ReportRow; expandable: boolea
             {s.role && <span className="ml-1 text-zinc-500 dark:text-zinc-400">{s.role}</span>}
           </span>
         ))}
+        {rest > 0 && (
+          <span className="rounded-md border border-dashed border-zinc-200 px-1.5 py-0.5 text-[11px] leading-4 text-zinc-400 dark:border-zinc-700">+{rest}</span>
+        )}
         {row.stocks.length === 0 && <span className="text-[11px] text-zinc-400">—</span>}
       </div>
     </div>
@@ -83,6 +102,14 @@ function ReportRowItem({ row, expandable }: { row: ReportRow; expandable: boolea
               </Link>
             </span>
           ))}
+          {row.id && (
+            <>
+              <span className="mx-1.5 text-zinc-300 dark:text-zinc-600">|</span>
+              <Link to={`/concept/${encodeURIComponent(row.id)}`} className="font-medium text-zinc-500 hover:text-sky-700 hover:underline dark:text-zinc-400 dark:hover:text-sky-300">
+                催化明细与全部标的 →
+              </Link>
+            </>
+          )}
         </p>
       </div>
     </details>

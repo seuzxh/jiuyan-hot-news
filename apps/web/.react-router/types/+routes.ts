@@ -34,12 +34,20 @@ type Pages = {
   "/report": {
     params: {};
   };
+  "/concept/:id": {
+    params: {
+      "id": string;
+    };
+  };
+  "/architecture": {
+    params: {};
+  };
 };
 
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/hot" | "/story/:id" | "/search" | "/ask" | "/api/ask" | "/report";
+    page: "/" | "/hot" | "/story/:id" | "/search" | "/ask" | "/api/ask" | "/report" | "/concept/:id" | "/architecture";
   };
   "routes/home.tsx": {
     id: "routes/home";
@@ -69,6 +77,14 @@ type RouteFiles = {
     id: "routes/report";
     page: "/report";
   };
+  "routes/concept.$id.tsx": {
+    id: "routes/concept.$id";
+    page: "/concept/:id";
+  };
+  "routes/docs.tsx": {
+    id: "routes/docs";
+    page: "/architecture";
+  };
 };
 
 type RouteModules = {
@@ -80,4 +96,6 @@ type RouteModules = {
   "routes/ask": typeof import("./app/routes/ask.tsx");
   "routes/api.ask": typeof import("./app/routes/api.ask.ts");
   "routes/report": typeof import("./app/routes/report.tsx");
+  "routes/concept.$id": typeof import("./app/routes/concept.$id.tsx");
+  "routes/docs": typeof import("./app/routes/docs.tsx");
 };
